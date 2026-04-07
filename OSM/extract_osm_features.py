@@ -45,7 +45,7 @@ def calculate_osm_features():
     print("Loading property dataset...")
     # Load your latest merged properties file
     try:
-        df_props = pd.read_csv("all_properties_merged.csv")
+        df_props = pd.read_csv("../merger/all_properties_merged.csv")
     except FileNotFoundError:
         print("Merged file not found! Make sure it exists in this directory.")
         return
@@ -128,12 +128,12 @@ def calculate_osm_features():
         df_props[col_name_nearest] = np.round(dist_km, 3)
         new_features.append(col_name_nearest)
         
-        # B. Count how many are within a 1.5 KM radius (Density Feature)
-        # Using tree.query_radius. r = 1.5km converted to radians
-        radius_rad = 1.5 / EARTH_RADIUS_KM
+        # B. Count how many are within a 3 KM radius (Density Feature)
+        # Using tree.query_radius. r = 3km converted to radians
+        radius_rad = 3.0 / EARTH_RADIUS_KM
         counts = tree.query_radius(df_props[['lat_rad', 'lon_rad']].values, r=radius_rad, count_only=True)
         
-        col_name_density = f'{cat_name}_count_within_1.5km'
+        col_name_density = f'{cat_name}_count_within_3km'
         df_props[col_name_density] = counts
         new_features.append(col_name_density)
 
@@ -148,7 +148,7 @@ def calculate_osm_features():
     output_filename = "all_properties_with_osm.csv"
     print(f"\nSaving final enriched dataset to {output_filename}...")
     df_props.to_csv(output_filename, index=False, encoding='utf-8')
-    print("Done! You're ready to build your Machine Learning model.")
+
 
 if __name__ == "__main__":
     calculate_osm_features()
