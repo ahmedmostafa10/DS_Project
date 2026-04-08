@@ -648,11 +648,22 @@ class DataValidationPipeline:
         except FileNotFoundError:
             self.logger.error(f"File {input_csv} not found. Cannot proceed with validation.")
             return
-            
+
         numeric_cols = df.select_dtypes(include=[np.number]).columns
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns
-        
-        # 1. Accuracy Validation
+
+        self._validate_accuracy(df, numeric_cols)
+        self._validate_consistency(df)
+        self._validate_completeness(df)
+        self._validate_uniqueness(df, categorical_cols)
+        self._validate_outliers(df, numeric_cols)
+        self._validate_distribution_and_relationships(df, numeric_cols)
+        self._generate_charts(df, numeric_cols, categorical_cols, output_report_csv)
+        self._validate_context(df)
+
+        self._export_report(output_report_csv)
+
+    def _validate_accuracy(self, df, numeric_cols):
         self.logger.info("--- Accuracy Validation ---")
         accuracy_issues = 0
         acc_details = []
@@ -662,8 +673,7 @@ class DataValidationPipeline:
                 self.logger.warning(f"Column '{col}' contains {negative_count} negative values.")
                 accuracy_issues += negative_count
                 acc_details.append(f"{col}: {negative_count} negatives")
-                
-        # Custom boundary checks
+
         if 'bedrooms' in df.columns:
             invalid_beds_count = (pd.to_numeric(df['bedrooms'], errors='coerce') > 12).sum()
             if invalid_beds_count > 0:
@@ -679,7 +689,6 @@ class DataValidationPipeline:
                 acc_details.append(f"bathroom: {invalid_baths_count} values > 12")
                 
         if 'area_value' in df.columns:
-            # Example heuristic: area over 100,000 might be an error or different unit
             invalid_area_count = (pd.to_numeric(df['area_value'], errors='coerce') > 100000).sum()
             if invalid_area_count > 0:
                 self.logger.warning(f"Column 'area_value' contains {invalid_area_count} values > 100,000.")
@@ -687,7 +696,6 @@ class DataValidationPipeline:
                 acc_details.append(f"area_value: {invalid_area_count} values > 100k")
                 
         if 'price_egp' in df.columns:
-            # Check for reasonably high ceiling (e.g. > 2 Billion EGP)
             invalid_price_count = (pd.to_numeric(df['price_egp'], errors='coerce') > 2000000000).sum()
             if invalid_price_count > 0:
                 self.logger.warning(f"Column 'price_egp' contains {invalid_price_count} extremely high values (> 2B EGP).")
@@ -700,24 +708,18 @@ class DataValidationPipeline:
         
         self.report_summary['Accuracy'] = " | ".join(acc_details)
 
-        # 2. Consistency Validation (With Pydantic)
+    def _validate_consistency(self, df):
         self.logger.info("--- Consistency Validation ---")
         consistency_errors = []
         con_details = []
         pydantic_error_count = 0
         
-        # We can still do group-level checks first, but row-level schema validation via Pydantic handles mixed types and row logic
-        # Run Pydantic check row by row for the schema
-        
-        # Replace expected_numeric_cols string check with pydantic type-checking natively
         for index, row in df.iterrows():
-            # converting row to dict and swapping nans to None
             row_dict = row.replace({np.nan: None}).to_dict()
             try:
                 PropertyRowSchema(**row_dict)
             except ValidationError as e:
                 pydantic_error_count += 1
-                # Log first 5 errors to avoid spamming the log
                 if pydantic_error_count <= 5:
                     self.logger.warning(f"Row {index} failed Pydantic validation: {e}")
 
@@ -746,7 +748,6 @@ class DataValidationPipeline:
                     consistency_errors.append(f"Mixed {col}")
                     con_details.append(f"{col}: Mixed units {list(unique_units)}")
 
-        # Check for mixed data types within the same column holistically
         for col in df.columns:
             col_dropna = df[col].dropna()
             if not col_dropna.empty:
@@ -768,7 +769,7 @@ class DataValidationPipeline:
             
         self.report_summary['Consistency'] = " | ".join(con_details)
 
-        # 3. Completeness Analysis
+    def _validate_completeness(self, df):
         self.logger.info("--- Completeness Analysis ---")
         comp_details = []
         missing_data = df.isnull().sum()
@@ -776,7 +777,6 @@ class DataValidationPipeline:
         completeness_df = completeness_df[completeness_df['Missing Values'] > 0].sort_values(by='Percentage (%)', ascending=False)
         self.logger.info(f"Missing values found in {len(completeness_df)} columns.")
         
-        # Log top 5 columns with missing data
         for idx, missing_row in completeness_df.head(5).iterrows():
             pct = missing_row['Percentage (%)']
             row_cnt = missing_row['Missing Values']
@@ -788,11 +788,10 @@ class DataValidationPipeline:
             
         self.report_summary['Completeness'] = f"{len(completeness_df)} cols have missing -> Top: " + " | ".join(comp_details)
 
-        # 4. Uniqueness Analysis
+    def _validate_uniqueness(self, df, categorical_cols):
         self.logger.info("--- Uniqueness Analysis ---")
         uniq_details = []
         
-        # Identify logical duplicates based on property characteristics rather than exact row match
         dup_subset = ['title', 'price_egp', 'location_full', 'bedrooms', 'bathroom', 'area_value']
         valid_subset = [col for col in dup_subset if col in df.columns]
         
@@ -805,7 +804,6 @@ class DataValidationPipeline:
             self.logger.info(f"Exact duplicate rows: {duplicates_count}")
             uniq_details.append(f"Exact duplicates: {duplicates_count}")
         
-        # Log cardinality for categorical columns
         for col in categorical_cols:
             if col in df.columns:
                 u_cnt = df[col].nunique()
@@ -814,7 +812,7 @@ class DataValidationPipeline:
 
         self.report_summary['Uniqueness'] = " | ".join(uniq_details)
 
-        # 5. Outlier Detection using IQR
+    def _validate_outliers(self, df, numeric_cols):
         self.logger.info("--- Outlier Detection: IQR ---")
         iqr_details = []
         for col in numeric_cols:
@@ -832,7 +830,7 @@ class DataValidationPipeline:
             
         self.report_summary['IQR Outliers'] = " | ".join(iqr_details)
 
-        # 7. Distribution Profiling (Skewness & Kurtosis) & Relationships (Spearman)
+    def _validate_distribution_and_relationships(self, df, numeric_cols):
         self.logger.info("--- Distribution Profiling & Relationships ---")
         dist_details = []
         for col in numeric_cols:
@@ -851,10 +849,8 @@ class DataValidationPipeline:
         
         rel_details = []
         if len(numeric_cols) > 1:
-            # Using Spearman rank correlation because it is robust to outliers
             corr_matrix = df[numeric_cols].corr(method='spearman')
             self.logger.info("Calculated Spearman Correlation Matrix (robust to outliers).")
-            # Log highly correlated feature pairs (> 0.8 or < -0.8)
             for i in range(len(corr_matrix.columns)):
                 for j in range(i):
                     val = corr_matrix.iloc[i, j]
@@ -869,8 +865,8 @@ class DataValidationPipeline:
                 rel_details.append("Insufficient numeric variables for correlation.")
                 
         self.report_summary['Relationships'] = " | ".join(rel_details)
-        
-        # --- Generate & Save Distribution & Relationship Charts ---
+
+    def _generate_charts(self, df, numeric_cols, categorical_cols, output_report_csv):
         plots_out_dir = os.path.join(os.path.dirname(output_report_csv) or '.', 'plots')
         os.makedirs(plots_out_dir, exist_ok=True)
         
@@ -881,7 +877,6 @@ class DataValidationPipeline:
             # 1. Numeric Feature Histograms
             cols_to_plot = [c for c in numeric_cols if df[c].nunique() > 10 and not c.lower().endswith('id')][:4]
             if cols_to_plot:
-                # pandas .hist creates multiple subplots automatically, no need to pass a single ax if multiple cols
                 df[cols_to_plot].hist(bins=30, figsize=(12, 8), edgecolor='black')
                 plt.suptitle('Histograms of Numeric Features')
                 plt.tight_layout()
@@ -892,7 +887,6 @@ class DataValidationPipeline:
             
             # 2. Categorical Bar Chart (Class Distribution)
             if len(categorical_cols) > 0:
-                # Prefer property_type if it exists, else the first categorical column
                 target_cat = 'property_type' if 'property_type' in df.columns else categorical_cols[0]
                 plt.figure(figsize=(10, 6))
                 df[target_cat].value_counts().head(10).plot(kind='bar', color='coral', edgecolor='black')
@@ -908,7 +902,7 @@ class DataValidationPipeline:
             # 3. Spearman Correlation Heatmap
             if len(numeric_cols) > 1:
                 plt.figure(figsize=(10, 8))
-                # Hiding annotations (annot=False) if too many columns, else it looks cluttered.
+                corr_matrix = df[numeric_cols].corr(method='spearman')
                 sns.heatmap(corr_matrix, annot=False, cmap='coolwarm', linewidths=0.5)
                 plt.title('Spearman Correlation Matrix')
                 plt.tight_layout()
@@ -920,7 +914,7 @@ class DataValidationPipeline:
         except ImportError:
             self.logger.warning("matplotlib or seaborn not installed. Skipping chart generation.")
 
-        # 8. Description & Target Context
+    def _validate_context(self, df):
         self.logger.info("--- Description & Context ---")
         target_col = 'price'
         if target_col in df.columns:
@@ -934,7 +928,7 @@ class DataValidationPipeline:
         self.logger.info(f"Engineered Features: {len(engineered_cols)} features found {engineered_cols}")
         self.report_summary['Engineered Features'] = f"{len(engineered_cols)} engineered features identified."
 
-        # 9. Output Report
+    def _export_report(self, output_report_csv):
         report_df = pd.DataFrame(list(self.report_summary.items()), columns=['Dimension', 'Findings / Summary'])
         report_df.to_csv(output_report_csv, index=False)
         self.logger.info(f"✅ Data Quality Report exported to {output_report_csv}")
