@@ -1,2 +1,4 @@
 ﻿*.csv
 *.pbf
+*.env
+settings.json
