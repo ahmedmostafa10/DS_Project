@@ -88,32 +88,34 @@ class DataValidationPipeline:
                 acc_details.append(f"{col}: {negative_count} negatives")
 
         if 'bedrooms' in df.columns:
-            invalid_beds_count = (pd.to_numeric(df['bedrooms'], errors='coerce') > 12).sum()
+            invalid_beds_count = (pd.to_numeric(df['bedrooms'], errors='coerce') > 15).sum()
             if invalid_beds_count > 0:
-                self.logger.warning(f"Column 'bedrooms' contains {invalid_beds_count} values > 12.")
+                self.logger.warning(f"Column 'bedrooms' contains {invalid_beds_count} values > 15.")
                 accuracy_issues += invalid_beds_count
-                acc_details.append(f"bedrooms: {invalid_beds_count} values > 12")
+                acc_details.append(f"bedrooms: {invalid_beds_count} values > 15")
         
         if 'bathroom' in df.columns:
-            invalid_baths_count = (pd.to_numeric(df['bathroom'], errors='coerce') > 12).sum()
+            invalid_baths_count = (pd.to_numeric(df['bathroom'], errors='coerce') > 15).sum()
             if invalid_baths_count > 0:
-                self.logger.warning(f"Column 'bathroom' contains {invalid_baths_count} values > 12.")
+                self.logger.warning(f"Column 'bathroom' contains {invalid_baths_count} values > 15.")
                 accuracy_issues += invalid_baths_count
-                acc_details.append(f"bathroom: {invalid_baths_count} values > 12")
+                acc_details.append(f"bathroom: {invalid_baths_count} values > 15")
                 
         if 'area_value' in df.columns:
-            invalid_area_count = (pd.to_numeric(df['area_value'], errors='coerce') > 100000).sum()
-            if invalid_area_count > 0:
-                self.logger.warning(f"Column 'area_value' contains {invalid_area_count} values > 100,000.")
+            invalid_area_count_high = (pd.to_numeric(df['area_value'], errors='coerce') > 1000).sum()
+            invalid_area_count_low = (pd.to_numeric(df['area_value'], errors='coerce') < 10).sum()
+            if invalid_area_count_high > 0 or invalid_area_count_low > 0:
+                invalid_area_count = invalid_area_count_high + invalid_area_count_low
+                self.logger.warning(f"Column 'area_value' contains {invalid_area_count} unrealistic values (> 1000 or < 10 sqm).")
                 accuracy_issues += invalid_area_count
-                acc_details.append(f"area_value: {invalid_area_count} values > 100k")
+                acc_details.append(f"area_value: {invalid_area_count} unrealistic values")
                 
         if 'price_egp' in df.columns:
-            invalid_price_count = (pd.to_numeric(df['price_egp'], errors='coerce') > 2000000000).sum()
+            invalid_price_count = (pd.to_numeric(df['price_egp'], errors='coerce') > 500000000).sum()
             if invalid_price_count > 0:
-                self.logger.warning(f"Column 'price_egp' contains {invalid_price_count} extremely high values (> 2B EGP).")
+                self.logger.warning(f"Column 'price_egp' contains {invalid_price_count} extremely high values (> 500M EGP).")
                 accuracy_issues += invalid_price_count
-                acc_details.append(f"price_egp: {invalid_price_count} extreme highs (> 2B EGP)")
+                acc_details.append(f"price_egp: {invalid_price_count} extreme highs (> 500M EGP)")
 
         if accuracy_issues == 0:
             self.logger.info("Basic numeric boundaries look accurate.")
@@ -221,7 +223,7 @@ class DataValidationPipeline:
         completeness_df = completeness_df[completeness_df['Missing Values'] > 0].sort_values(by='Percentage (%)', ascending=False)
         self.logger.info(f"Missing values found in {len(completeness_df)} columns.")
         
-        for idx, missing_row in completeness_df.head(5).iterrows():
+        for idx, missing_row in completeness_df.iterrows():
             pct = missing_row['Percentage (%)']
             row_cnt = missing_row['Missing Values']
             self.logger.warning(f"Missing Data -> [{idx}]: {row_cnt} rows ({pct:.2f}%)")
@@ -230,13 +232,13 @@ class DataValidationPipeline:
         if not comp_details:
             comp_details.append("No missing data in dataset.")
             
-        self.report_summary['Completeness'] = f"{len(completeness_df)} cols have missing -> Top: " + " | ".join(comp_details)
+        self.report_summary['Completeness'] = f"{len(completeness_df)} cols have missing -> All: " + " | ".join(comp_details)
 
     def _validate_uniqueness(self, df, categorical_cols):
         self.logger.info("--- Uniqueness Analysis ---")
         uniq_details = []
         
-        dup_subset = ['title', 'price_egp', 'location_full', 'bedrooms', 'bathroom', 'area_value']
+        dup_subset = ['title', 'price_egp', 'location_full', 'bedrooms', 'bathroom', 'area_value', 'lat', 'lon']
         valid_subset = [col for col in dup_subset if col in df.columns]
         
         if valid_subset:
@@ -318,16 +320,40 @@ class DataValidationPipeline:
             import matplotlib.pyplot as plt
             import seaborn as sns
             
-            # 1. Numeric Feature Histograms
-            cols_to_plot = [c for c in numeric_cols if df[c].nunique() > 10 and not c.lower().endswith('id')][:4]
+            # 1. Numeric Feature Distribution Profiles (Histograms + KDE)
+            cols_to_plot = [c for c in numeric_cols if df[c].nunique() > 10 and not c.lower().endswith('id')]
             if cols_to_plot:
-                df[cols_to_plot].hist(bins=30, figsize=(12, 8), edgecolor='black')
-                plt.suptitle('Histograms of Numeric Features')
+                n_cols = len(cols_to_plot)
+                grid_cols = min(3, n_cols)
+                grid_rows = (n_cols + grid_cols - 1) // grid_cols
+                fig, axes = plt.subplots(grid_rows, grid_cols, figsize=(6 * grid_cols, 5 * grid_rows))
+                
+                if n_cols == 1:
+                    axes = [axes]
+                else:
+                    axes = axes.flatten()
+                
+                for i, col in enumerate(cols_to_plot):
+                    data_to_plot = df[col].dropna()
+                    
+                    # Address extreme scaling issues for price and area by dropping top 2% extreme outliers for the plot
+                    if col in ['price_egp', 'area_value']:
+                        q_high = data_to_plot.quantile(0.98)
+                        data_to_plot = data_to_plot[data_to_plot <= q_high]
+                        axes[i].set_title(f'Distribution Profile: {col} (≤ P98)')
+                    else:
+                        axes[i].set_title(f'Distribution Profile: {col}')
+                        
+                    sns.histplot(data_to_plot, kde=True, bins=30, ax=axes[i], color='skyblue')
+                
+                for j in range(i + 1, len(axes)):
+                    fig.delaxes(axes[j])
+                    
                 plt.tight_layout()
-                hist_path = os.path.join(plots_out_dir, 'numeric_distribution.png')
-                plt.savefig(hist_path)
-                plt.close()
-                self.logger.info(f"📊 Numeric distribution histograms saved to {hist_path}")
+                dist_path = os.path.join(plots_out_dir, 'numeric_distribution_profiles.png')
+                plt.savefig(dist_path)
+                plt.close(fig)
+                self.logger.info(f"📊 Numeric distribution profiles saved to {dist_path}")
             
             # 2. Categorical Bar Chart (Class Distribution)
             if len(categorical_cols) > 0:
