@@ -2,3 +2,4 @@
 *.pbf
 *.env
 settings.json
+*.log
