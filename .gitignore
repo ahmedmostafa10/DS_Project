@@ -1,4 +1,6 @@
 ﻿*.csv
 *.pbf
 *.env
+*.log
 settings.json
+*.egg-info
