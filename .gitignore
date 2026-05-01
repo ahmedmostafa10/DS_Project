@@ -4,3 +4,8 @@
 settings.json
 *.log
 *.egg-info
+*.db
+*.png
+*.txt
+*.pkl
+*/mlruns
