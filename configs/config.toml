@@ -1,0 +1,164 @@
+[paths]
+raw_data_path = "./data/raw/data.csv"
+cleaned_data_path = "./data/cleaned/cleaned_data.csv"
+quarantine_log_path = "./data/cleaned/cleaning_quarantined_data.csv"
+cleaning_log_report_path = "./reports/results/cleaning_log_report.csv"
+cleaning_logging_path = "./reports/results/cleaning.log"
+transformation_log_report_path = "./../reports/results/transformation_log_report.csv"
+transformation_logging_path = "./../reports/results/transformation.log"
+processed_data_dir = "./../data/processed"
+
+train_path = "./data/processed/train.csv"
+validation_path = "./data/processed/validation.csv"
+test_path = "./data/processed/test.csv"
+
+
+models_dir = "./models"
+mlflow_db = "./models/mlflow.db"
+
+train_confusion_matrix = "./reports/figures/train_confusion_matrix.png"
+validation_confusion_matrix = "./reports/figures/validation_confusion_matrix.png"
+test_confusion_matrix = "./reports/figures/test_confusion_matrix.png"
+
+
+[mlflow]
+experiment_name = "house_price_prediction_experiment"
+tracking_uri = "file:./mlruns"
+
+[split]
+test_size = 0.1
+val_size = 0.15
+random_state = 42
+
+[encoding.listing_level]
+standard = 0
+featured = 1
+premium = 2
+hot = 3
+superhot = 4
+
+
+[data]
+irrelevant_columns_to_remove = [
+    "listing_id", "internal_id", "detail_url", "title",
+    "images_count", "has_video", "video_url", "reference",
+    "description", "agent_id", "agent_name", "agent_email",
+    "agent_is_verified", "agent_languages", "broker_id",
+    "broker_name", "broker_email", "broker_phone",
+    "contact_phone", "contact_whatsapp", "location_full",
+    "contact_email", "scraped_at", "source", "id", "url",
+    "title.1", "scraped_at.1", "category", "listing_type",
+    "listed_date", "subdistrict", "payment_plan",
+    "is_direct_from_developer"
+]
+
+distance_columns = [
+    "dist_nearest_school_km",
+    "dist_nearest_hospital_km",
+    "dist_nearest_supermarket_km",
+    "dist_nearest_mall_km",
+    "dist_nearest_transit_station_km",
+    "dist_nearest_cafe_restaurant_km"
+]
+
+count_columns = [
+    "school_count_within_3km",
+    "hospital_count_within_3km",
+    "supermarket_count_within_3km",
+    "mall_count_within_3km",
+    "transit_station_count_within_3km",
+    "cafe_restaurant_count_within_3km"
+]
+
+numerical_columns = [
+   "price_egp",
+    "lat",
+    "lon",
+    "area_value",
+    "dist_nearest_school_km",
+    "school_count_within_3km",
+    "dist_nearest_hospital_km",
+    "hospital_count_within_3km",
+    "dist_nearest_supermarket_km",
+    "supermarket_count_within_3km",
+    "dist_nearest_mall_km",
+    "mall_count_within_3km",
+    "dist_nearest_transit_station_km",
+    "transit_station_count_within_3km",
+    "dist_nearest_cafe_restaurant_km",
+    "cafe_restaurant_count_within_3km"
+]
+
+
+boolean_columns = [
+    "is_premium",
+    "is_featured",
+    "is_exclusive"
+]
+
+categorical_columns = [
+    "completion_status",
+    "city",
+    "town",
+    "district",
+    "furnished",
+    "listing_level",
+    "amenities",
+]
+
+[encoding]
+cat_col= ["completion_status", "furnished"]
+freq_col = ["city", "town", "district"]
+
+
+[rules]
+max_valid_area = 1000
+min_valid_area = 40
+max_valid_price = 20000000
+min_valid_lon = 25.0
+max_valid_lon = 35.0
+min_valid_lat = 22.0
+max_valid_lat = 31.0
+min_valid_bedrooms = 1
+
+[outliers]
+area_lower_perc = 0.01
+area_upper_perc = 0.99
+poi_lower_perc = 0.0
+poi_upper_perc = 0.95
+
+
+
+[features]
+standard_dist_cols = [
+    "dist_nearest_mall_km",
+    "dist_nearest_transit_station_km"
+]
+
+robust_dist_cols = [
+    "dist_nearest_school_km",
+    "dist_nearest_hospital_km",
+    "dist_nearest_supermarket_km",
+    "dist_nearest_cafe_restaurant_km"
+]
+
+count_cols = [
+    "school_count_within_3km",
+    "hospital_count_within_3km",
+    "supermarket_count_within_3km",
+    "mall_count_within_3km",
+    "transit_station_count_within_3km",
+    "cafe_restaurant_count_within_3km"
+]
+
+[feature_selection]
+variance_threshold = 0.1
+correlation_threshold = 0.005
+multicollinearity_threshold = 0.9
+rfecv_scoring = "f1_macro"
+rfecv_cv = 5
+rfecv_step = 1
+
+[prediction]
+test_data_path = "./data/processed/test.csv"
+model_path = "./models/best_model_latest.pkl"

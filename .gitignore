@@ -5,6 +5,9 @@ settings.json
 *.log
 *.egg-info
 *.db
+*.txt
+*.pkl
+/mlruns
 */mlruns
 *.png
 *__pycache__/
