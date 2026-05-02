@@ -13,7 +13,7 @@ where = ["."]
 
 # ─── Pytest ───────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
-pythonpath = [".", "scripts"]
+pythonpath = [".", "src"]
 testpaths  = ["tests"]
 addopts    = "-v"
 
@@ -22,13 +22,17 @@ addopts    = "-v"
 
 
 # ─── Ruff (linting & formatting) ──────────────────────────────────────────────
+# ─── Ruff (linting & formatting) ──────────────────────────────────────────────
 [tool.ruff]
 line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
-select = ["E", "F", "W"]   # pycodestyle errors, pyflakes, warnings
-ignore = ["E501"]           # ignore line-too-long (handled by formatter)
+select = ["E", "F", "W", "I"]  
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]   
 
 # TODO: add new script folders to include when you add stages
 # e.g. include = ["scripts/", "src/"]
@@ -36,7 +40,7 @@ ignore = ["E501"]           # ignore line-too-long (handled by formatter)
 
 # ─── Coverage ─────────────────────────────────────────────────────────────────
 [tool.coverage.run]
-source = ["scripts"]
+source = ["src"]
 omit   = ["tests/*", "**/__init__.py"]
 
 # TODO: add new source folders here as you add stages

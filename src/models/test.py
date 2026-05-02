@@ -1,14 +1,16 @@
+import tomllib
+
 import joblib
 import pandas as pd
 
 from src.models.train import Evaluator
-import tomllib
 
 with open("./configs/config.toml", "rb") as f:
     config = tomllib.load(f)
 
 MODEL_PATH = config["prediction"]["model_path"]
 TEST_PATH = config["prediction"]["test_data_path"]
+
 
 def predict(MODEL_PATH, TEST_PATH):
     # Load the model
@@ -21,7 +23,7 @@ def predict(MODEL_PATH, TEST_PATH):
 
     # predict
     pred = model.predict(X_test)
-    
+
     # evaluate
     evaluator = Evaluator()
     acc, f1, report, cm = evaluator.evaluate(y_test, pred)

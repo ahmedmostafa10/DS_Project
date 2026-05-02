@@ -4,17 +4,24 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from src.data.data_cleaning import fix_consistency, remove_irrelevant_columns,accuracy_rule_based_correction,\
-      accuracy_qurantine_based_fixing, high_missingness_removal,fill_district_with_mode,\
-      fix_missingness, drop_duplicates,apply_clipping, handle_outliers_with_clipping,\
-      DISTANCE_COLUMNS, COUNT_COLUMNS
+from src.data.data_cleaning import (
+    fix_consistency,
+    remove_irrelevant_columns,
+    accuracy_rule_based_correction,
+    accuracy_qurantine_based_fixing,
+    high_missingness_removal,
+    fill_district_with_mode,
+    fix_missingness,
+    drop_duplicates,
+    apply_clipping,
+    handle_outliers_with_clipping,
+    DISTANCE_COLUMNS,
+    COUNT_COLUMNS,
+)
+
 
 def test_remove_irrelevant_columns():
-    df = pd.DataFrame({
-        "listing_id": [1, 2],
-        "price": [100, 200],
-        "area_value": [50, 60]
-    })
+    df = pd.DataFrame({"listing_id": [1, 2], "price": [100, 200], "area_value": [50, 60]})
 
     result = remove_irrelevant_columns(df, ["listing_id"])
 
@@ -24,9 +31,7 @@ def test_remove_irrelevant_columns():
 
 
 def test_accuracy_rule_based_correction():
-    df = pd.DataFrame({
-        "bedrooms": ["studio", "2", "3"]
-    })
+    df = pd.DataFrame({"bedrooms": ["studio", "2", "3"]})
 
     result = accuracy_rule_based_correction(df)
 
@@ -37,13 +42,15 @@ def test_accuracy_rule_based_correction():
 def test_accuracy_quarantine():
     quarantine_log_path = "test_quarantine_log.csv"
 
-    df = pd.DataFrame({
-        "area_value": [50, 2000],
-        "price_egp": [100000, 50000000],
-        "lon": [30, 60],
-        "lat": [25, 10],
-        "bedrooms": [2, 0]
-    })
+    df = pd.DataFrame(
+        {
+            "area_value": [50, 2000],
+            "price_egp": [100000, 50000000],
+            "lon": [30, 60],
+            "lat": [25, 10],
+            "bedrooms": [2, 0],
+        }
+    )
 
     result = accuracy_qurantine_based_fixing(df, quarantine_log_path=quarantine_log_path)
 
@@ -53,21 +60,45 @@ def test_accuracy_quarantine():
     # quarantine file created
     assert os.path.exists(quarantine_log_path)
 
+
 def test_fix_consistency():
-    df = pd.DataFrame({
-        "property_type":    ["Apartments", "apartment", "apartment", "apartment", "apartment", "apartment"],
-        "offering_type":    ["for-sale", "for-sale", "for-sale", "for-sale", "for-sale", "for-sale"],
-        "completion_status":["completed", "off_plan", "completed_primary", "off_plan_primary", "completed", "completed"],
-        "town":             ["Nasr City", "Maadi", "Maadi", "Maadi", "Maadi", "Maadi"],
-        "district":         ["D1", "D2", "  6th October!! ", "d1", "d1", "d1"],
-        "furnished":        ["YES", "NO", "PARTLY", "YES", "NO", "YES"],
-        "price_period":     ["monthly"] * 6,
-        "price_currency":   ["EGP"] * 6,
-        "area_unit":        ["sqm"] * 6,
-        "is_verified":      [True] * 6,
-        "is_new_construction": [False] * 6,
-        "rera":             [None] * 6,
-    })
+    df = pd.DataFrame(
+        {
+            "property_type": [
+                "Apartments",
+                "apartment",
+                "apartment",
+                "apartment",
+                "apartment",
+                "apartment",
+            ],
+            "offering_type": [
+                "for-sale",
+                "for-sale",
+                "for-sale",
+                "for-sale",
+                "for-sale",
+                "for-sale",
+            ],
+            "completion_status": [
+                "completed",
+                "off_plan",
+                "completed_primary",
+                "off_plan_primary",
+                "completed",
+                "completed",
+            ],
+            "town": ["Nasr City", "Maadi", "Maadi", "Maadi", "Maadi", "Maadi"],
+            "district": ["D1", "D2", "  6th October!! ", "d1", "d1", "d1"],
+            "furnished": ["YES", "NO", "PARTLY", "YES", "NO", "YES"],
+            "price_period": ["monthly"] * 6,
+            "price_currency": ["EGP"] * 6,
+            "area_unit": ["sqm"] * 6,
+            "is_verified": [True] * 6,
+            "is_new_construction": [False] * 6,
+            "rera": [None] * 6,
+        }
+    )
 
     result = fix_consistency(df)
 
@@ -95,15 +126,19 @@ def test_fix_consistency():
     assert "PARTLY" not in result["furnished"].values
 
     # single-value columns dropped
-    for col in ["price_period", "price_currency", "area_unit", "is_verified", "is_new_construction", "rera"]:
+    for col in [
+        "price_period",
+        "price_currency",
+        "area_unit",
+        "is_verified",
+        "is_new_construction",
+        "rera",
+    ]:
         assert col not in result.columns
 
+
 def test_high_missingness_removal():
-    df = pd.DataFrame({
-        "is_exclusive": [None, None],
-        "amenities": [None, None],
-        "keep": [1, 2]
-    })
+    df = pd.DataFrame({"is_exclusive": [None, None], "amenities": [None, None], "keep": [1, 2]})
 
     result = high_missingness_removal(df)
 
@@ -111,12 +146,11 @@ def test_high_missingness_removal():
     assert "amenities" not in result.columns
     assert "keep" in result.columns
 
+
 def test_fill_district_with_mode():
-    df = pd.DataFrame({
-        "city": ["A", "A", "A"],
-        "town": ["T1", "T1", "T1"],
-        "district": ["D1", np.nan, "D1"]
-    })
+    df = pd.DataFrame(
+        {"city": ["A", "A", "A"], "town": ["T1", "T1", "T1"], "district": ["D1", np.nan, "D1"]}
+    )
 
     df["district"] = df["district"].astype("category")
 
@@ -126,49 +160,50 @@ def test_fill_district_with_mode():
     assert result["district"].isna().sum() == 0
     assert np.unique(result["district"]).size == 1
 
+
 def test_impute_missing():
-    df = pd.DataFrame({
-        "city": ["A"],
-        "town": ["T"],
-        "district": pd.Series([np.nan], dtype="category"),
-        "furnished": pd.Series([np.nan], dtype="category"),
-        "completion_status": ["done"],
-        "bathroom": [1]
-    })
+    df = pd.DataFrame(
+        {
+            "city": ["A"],
+            "town": ["T"],
+            "district": pd.Series([np.nan], dtype="category"),
+            "furnished": pd.Series([np.nan], dtype="category"),
+            "completion_status": ["done"],
+            "bathroom": [1],
+        }
+    )
 
     result = fix_missingness(df)
 
-    assert "Missing" in result["furnished"].values 
+    assert "Missing" in result["furnished"].values
     assert result["furnished"].isna().sum() == 0
     assert result["district"].isna().sum() == 0
 
-    df_2 = pd.DataFrame({
-        "city": ["A", "A"],
-        "town": ["T", "T"],
-        "district": pd.Series(["6th october", "6th october"], dtype="category"),
-        "furnished": pd.Series(["yes", "yes"], dtype="category"),
-        "completion_status": ["done", np.nan],
-        "bathroom": [np.nan,1]
-    })
+    df_2 = pd.DataFrame(
+        {
+            "city": ["A", "A"],
+            "town": ["T", "T"],
+            "district": pd.Series(["6th october", "6th october"], dtype="category"),
+            "furnished": pd.Series(["yes", "yes"], dtype="category"),
+            "completion_status": ["done", np.nan],
+            "bathroom": [np.nan, 1],
+        }
+    )
 
     result_2 = fix_missingness(df_2)
     assert result_2.shape[0] == 0
 
 
 def test_drop_duplicates():
-    df = pd.DataFrame({
-        "a": [1, 1, 2],
-        "b": [3, 3, 4]
-    })
+    df = pd.DataFrame({"a": [1, 1, 2], "b": [3, 3, 4]})
 
     result = drop_duplicates(df)
 
     assert len(result) == 2
 
+
 def test_apply_clipping():
-    df = pd.DataFrame({
-        "x": [1, 2, 3, 100]
-    })
+    df = pd.DataFrame({"x": [1, 2, 3, 100]})
 
     result, count = apply_clipping(df, "x", 0.0, 0.75)
 
@@ -177,14 +212,17 @@ def test_apply_clipping():
 
 
 def test_handle_outliers():
-    df = pd.DataFrame({
-        "area_value": [10, 20, 10000],
-        "dist_nearest_school_km": [1, 2, 100],
-        "school_count_within_3km": [1, 2, 100]
-    })
+    df = pd.DataFrame(
+        {
+            "area_value": [10, 20, 10000],
+            "dist_nearest_school_km": [1, 2, 100],
+            "school_count_within_3km": [1, 2, 100],
+        }
+    )
 
-    result = handle_outliers_with_clipping(df, distance_columns=["dist_nearest_school_km"], \
-                                           count_columns=["school_count_within_3km"])
+    result = handle_outliers_with_clipping(
+        df, distance_columns=["dist_nearest_school_km"], count_columns=["school_count_within_3km"]
+    )
 
     assert result.shape[0] == 3
     assert "area_value" in result.columns
