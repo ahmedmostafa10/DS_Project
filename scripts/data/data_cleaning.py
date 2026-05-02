@@ -51,10 +51,8 @@ MIN_VALID_BEDROOMS=1
 # for outlier
 AREA_LOWER_PERC = 0.01
 AREA_UPPER_PERC = 0.95
-DISTANCE_LOWER_PERC = 0.0
-DISTANCE_UPPER_PERC = 0.95
-COUNT_LOWER_PERC = 0.0
-COUNT_UPPER_PERC = 0.95
+POI_LOWER_PERC = 0.0
+POI_UPPER_PERC = 0.95
 #####################       SETUP LOGGING       #####################
 
 os.makedirs(os.path.dirname(CLEANING_LOGGING_PATH), exist_ok=True)
@@ -512,13 +510,13 @@ def handle_outliers_with_clipping(df,clipping_columns=CLIPPING_COLUMNS,log_colum
             print(f"Warning: Column '{column}' not found in dataframe. Skipping clipping for this column.")
             continue
 
-        df_cleaned, clipped_numbers = apply_clipping(df_cleaned, column, 0.0, 0.95)  # FIXED: df → df_cleaned
+        df_cleaned, clipped_numbers = apply_clipping(df_cleaned, column, POI_LOWER_PERC, POI_UPPER_PERC)  # FIXED: df → df_cleaned
 
         log_cleaning_action(
             step="outlier",
             rule=f"clip_{column}_outliers",
             records_affected=clipped_numbers,
-            action=f"Clipped '{column}' to 95th percentile",
+            action=f"Clipped '{column}' to {POI_UPPER_PERC*100}th percentile",
             rationale=(
                 f"Clipping extreme outliers in '{column}' reduces their disproportionate"
                 "influence on the model while preserving the overall distribution shape. "
