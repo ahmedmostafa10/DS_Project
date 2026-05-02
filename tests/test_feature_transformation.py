@@ -240,5 +240,5 @@ def test_save_outputs(ft, encoded):
             pd.DataFrame, "to_csv", lambda self, path, **kw: saved.__setitem__(path, self.copy())
         )
         ft.save_outputs(X_train, X_val, X_test, y_train, y_val, y_test)
-    assert "target" in saved["./../data/processed/train.csv"].columns
+    assert "target" in saved["./data/processed/train.csv"].columns
     assert len(saved) == 4
