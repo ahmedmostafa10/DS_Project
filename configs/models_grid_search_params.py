@@ -17,13 +17,13 @@ MODEL_PARAMS = {
     },
 
     "random_forest": {
-        "n_estimators": [100, 300],
+        "n_estimators": [100, 300,500, 1000],
         "max_depth": [10, 20, None]
     },
 
     "xgboost": {
-        "n_estimators": [200, 300],
-        "max_depth": [3, 5],
+        "n_estimators": [200, 300,500, 1000],
+        "max_depth": [3, 5,10,12],
         "learning_rate": [0.05, 0.1]
     }
 }

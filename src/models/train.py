@@ -1,5 +1,8 @@
 import os
 import joblib
+from datetime import datetime
+import warnings
+warnings.filterwarnings("ignore")
 
 import mlflow
 import mlflow.sklearn
@@ -18,15 +21,15 @@ from configs.models_grid_search_params import MODEL_PARAMS
 
 
 EXPERIMENT_NAME="house_price_prediction_experiment"
-TRAIN_CONFUSION_MATRIX_PATH = './../reports/train_confusion_matrix.png'
-VALIDATION_CONFUSION_MATRIX_PATH = './../reports/validation_confusion_matrix.png'
-TEST_CONFUSION_MATRIX_PATH = './../reports/test_confusion_matrix.png'
-MLFLOW_DB_MODEL_PATH = './../models/mlflow.db'
-MODELS_DIR = "./../models"
+TRAIN_CONFUSION_MATRIX_PATH = './reports/train_confusion_matrix.png'
+VALIDATION_CONFUSION_MATRIX_PATH = './reports/validation_confusion_matrix.png'
+TEST_CONFUSION_MATRIX_PATH = './reports/test_confusion_matrix.png'
+MLFLOW_DB_MODEL_PATH = './models/mlflow.db'
+MODELS_DIR = "./models"
 
-TRAIN_PATH = "./../data/processed/train.csv"
-VALIDATION_PATH = "./../data/processed/validation.csv"
-TEST_PATH = "./../data/processed/test.csv"
+TRAIN_PATH = "./data/processed/train.csv"
+VALIDATION_PATH = "./data/processed/validation.csv"
+TEST_PATH = "./data/processed/test.csv"
 
 
 class Evaluator:
@@ -68,10 +71,10 @@ class ModelTrainer:
 
         self.candidate_models = {
             "logistic_regression": LogisticRegression(max_iter=25_000, random_state=42),
-            "svc": SVC(),
             "decision_tree": DecisionTreeClassifier(random_state=42),
             "random_forest": RandomForestClassifier(random_state=42, n_jobs=-1),
-            "xgboost": XGBClassifier(random_state=42,n_jobs=-1,eval_metric="logloss")
+            "xgboost": XGBClassifier(random_state=42,n_jobs=-1,eval_metric="logloss"),
+            # "svc": SVC(),
         }
         
         # setup mlflow
@@ -83,8 +86,9 @@ class ModelTrainer:
             print(f"\nTraining {name} ...")
 
             params = model_params_grid[name]
+            run_name = f"{name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-            with mlflow.start_run(run_name=name+"_{id}"):
+            with mlflow.start_run(run_name=run_name):
                 grid = GridSearchCV(
                     estimator=model,
                     param_grid=params,
@@ -121,6 +125,7 @@ class ModelTrainer:
                 mlflow.sklearn.log_model(best_model, name)
 
                 print(f"{name} val_acc: {val_acc:.4f}")
+                print(f"{name} val_macro_f1: {val_f1:.4f}")
 
                 # track best
                 if val_f1 > self.best_score:
