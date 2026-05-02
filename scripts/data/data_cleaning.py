@@ -237,6 +237,126 @@ def high_missingness_removal(df):
     return df_cleaned
 
 
+
+
+
+
+def fix_consistency(df: pd.DataFrame) -> pd.DataFrame:
+    df_cleaned = df.copy()
+ 
+    df_cleaned["property_type"] = df_cleaned["property_type"].str.lower().replace({"apartments": "apartment"})
+    log_cleaning_action(
+        step="consistency", rule="standardize_property_types",
+        records_affected=int((df["property_type"].str.lower() == "apartments").sum()),
+        action="standardized 'apartments' to 'apartment'",
+        rationale="Unifies property type category under the singular form"
+    )
+    if df_cleaned["property_type"].nunique() == 1:
+        df_cleaned.drop(columns=["property_type"], inplace=True)
+        log_cleaning_action(
+            step="consistency", rule="drop_property_type_if_single_value",
+            records_affected=0, action="dropped 'property_type' column",
+            rationale="Column is redundant when it contains only a single unique value"
+        )
+ 
+    df_cleaned["offering_type"] = df_cleaned["offering_type"].replace({"Residential for Sale": "for-sale"})
+    log_cleaning_action(
+        step="consistency", rule="standardize_offering_types",
+        records_affected=int((df["offering_type"] == "Residential for Sale").sum()),
+        action="standardized 'Residential for Sale' to 'for-sale'",
+        rationale="Unifies offering type under a concise consistent label"
+    )
+    if df_cleaned["offering_type"].nunique() == 1:
+        df_cleaned.drop(columns=["offering_type"], inplace=True)
+        log_cleaning_action(
+            step="consistency", rule="drop_offering_type_if_single_value",
+            records_affected=0, action="dropped 'offering_type' column",
+            rationale="Column is redundant when it contains only a single unique value"
+        )
+ 
+    df_cleaned["completion_status"] = df_cleaned["completion_status"].replace({
+        "completed_primary": "completed",
+        "off_plan_primary": "off_plan"
+    })
+    log_cleaning_action(
+        step="consistency", rule="standardize_completion_status",
+        records_affected=int(df["completion_status"].isin(["completed_primary", "off_plan_primary"]).sum()),
+        action="standardized 'completed_primary' -> 'completed', 'off_plan_primary' -> 'off_plan'",
+        rationale="Unifies completion status values under concise consistent labels"
+    )
+ 
+    if "price_period" in df_cleaned.columns and df_cleaned["price_period"].nunique() == 1:
+        df_cleaned.drop(columns=["price_period"], inplace=True)
+        log_cleaning_action(
+            step="consistency", rule="drop_price_period_if_single_value",
+            records_affected=0, action="dropped 'price_period' column",
+            rationale="Column is redundant when it contains only a single unique value"
+        )
+ 
+    if "price_currency" in df_cleaned.columns and df_cleaned["price_currency"].nunique() == 1:
+        df_cleaned.drop(columns=["price_currency"], inplace=True)
+        log_cleaning_action(
+            step="consistency", rule="drop_price_currency_if_single_value",
+            records_affected=0, action="dropped 'price_currency' column",
+            rationale="Column is redundant when it contains only a single unique value"
+        )
+ 
+    df_cleaned["town"] = df_cleaned["town"].str.replace(r'\bCity\b', '', regex=True).str.strip().str.title()
+    log_cleaning_action(
+        step="consistency", rule="standardize_town_names",
+        records_affected=int(df["town"].str.contains(r'\bCity\b', regex=True, na=False).sum()),
+        action="removed 'City' suffix and applied title case to town names",
+        rationale="Removes redundant 'City' suffix and unifies casing across town names"
+    )
+ 
+    df_cleaned["district"] = (
+        df_cleaned["district"].astype(str).str.strip().str.lower()
+        .str.replace(r"\s+", " ", regex=True)
+        .str.replace(r"[^\w\s]", "", regex=True)
+    )
+    log_cleaning_action(
+        step="consistency", rule="standardize_district_names",
+        records_affected=int(df_cleaned["district"].notna().sum()),
+        action="lowercased, stripped, removed extra spaces and punctuation from district names",
+        rationale="Unifies district name formatting for consistent grouping"
+    )
+ 
+    if "area_unit" in df_cleaned.columns:
+        df_cleaned["area_unit"] = df_cleaned["area_unit"].str.lower().str.strip()
+        log_cleaning_action(
+            step="consistency", rule="standardize_area_unit",
+            records_affected=int(df_cleaned["area_unit"].notna().sum()),
+            action="lowercased and stripped 'area_unit'",
+            rationale="Unifies area unit values for consistency"
+        )
+        if df_cleaned["area_unit"].nunique() == 1:
+            df_cleaned.drop(columns=["area_unit"], inplace=True)
+            log_cleaning_action(
+                step="consistency", rule="drop_area_unit_if_single_value",
+                records_affected=0, action="dropped 'area_unit' column",
+                rationale="Column is redundant when it contains only a single unique value"
+            )
+ 
+    furnished_mapping = {"NO": "unfurnished", "YES": "furnished", "PARTLY": "partly"}
+    log_cleaning_action(
+        step="consistency", rule="standardize_furnished",
+        records_affected=int(df_cleaned["furnished"].isin(furnished_mapping.keys()).sum()),
+        action=f"mapped furnished values: {furnished_mapping}",
+        rationale="Unifies furnished status values under consistent lowercase labels"
+    )
+    df_cleaned["furnished"] = df_cleaned["furnished"].replace(furnished_mapping)
+ 
+    for col in ["is_verified", "is_new_construction", "rera"]:
+        if col in df_cleaned.columns and df_cleaned[col].nunique() <= 1:
+            df_cleaned.drop(columns=[col], inplace=True)
+            log_cleaning_action(
+                step="consistency", rule=f"drop_{col}_if_single_value",
+                records_affected=0, action=f"dropped '{col}' column",
+                rationale="Column is redundant when it contains only a single or no unique value"
+            )
+ 
+    return df_cleaned
+
 def fill_district_with_mode(df):
     number_of_missing_districts = int(df["district"].isna().sum())
 
@@ -327,6 +447,8 @@ def fix_missingness(df):
 
     return df_cleaned
 
+
+
 def drop_duplicates(df):
     df_cleaned = df.copy()
 
@@ -347,6 +469,7 @@ def drop_duplicates(df):
     )
 
     return df_cleaned
+
 
 def apply_clipping(df, column, lower_perc, upper_perc):
     df_clipped = df.copy()
@@ -449,7 +572,8 @@ if __name__ == "__main__":
     cleaning_pipeline.add_step(remove_irrelevant_columns, columns_to_remove=IRRELEVANT_COLUMNS_TO_REMOVE)
     cleaning_pipeline.add_step(accuracy_rule_based_correction)
     cleaning_pipeline.add_step(accuracy_qurantine_based_fixing)
-    # TODO: add consistency here
+   
+    cleaning_pipeline.add_step(fix_consistency)
 
     cleaning_pipeline.add_step(high_missingness_removal)
     cleaning_pipeline.add_step(fix_missingness)

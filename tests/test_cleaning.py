@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from scripts.data.data_cleaning import remove_irrelevant_columns,accuracy_rule_based_correction,\
+from scripts.data.data_cleaning import fix_consistency, remove_irrelevant_columns,accuracy_rule_based_correction,\
       accuracy_qurantine_based_fixing, high_missingness_removal,fill_district_with_mode,\
       fix_missingness, drop_duplicates,apply_clipping, handle_outliers_with_clipping,\
       DISTANCE_COLUMNS, COUNT_COLUMNS
@@ -53,6 +53,50 @@ def test_accuracy_quarantine():
     # quarantine file created
     assert os.path.exists(quarantine_log_path)
 
+def test_fix_consistency():
+    df = pd.DataFrame({
+        "property_type":    ["Apartments", "apartment", "apartment", "apartment", "apartment", "apartment"],
+        "offering_type":    ["for-sale", "for-sale", "for-sale", "for-sale", "for-sale", "for-sale"],
+        "completion_status":["completed", "off_plan", "completed_primary", "off_plan_primary", "completed", "completed"],
+        "town":             ["Nasr City", "Maadi", "Maadi", "Maadi", "Maadi", "Maadi"],
+        "district":         ["D1", "D2", "  6th October!! ", "d1", "d1", "d1"],
+        "furnished":        ["YES", "NO", "PARTLY", "YES", "NO", "YES"],
+        "price_period":     ["monthly"] * 6,
+        "price_currency":   ["EGP"] * 6,
+        "area_unit":        ["sqm"] * 6,
+        "is_verified":      [True] * 6,
+        "is_new_construction": [False] * 6,
+        "rera":             [None] * 6,
+    })
+
+    result = fix_consistency(df)
+
+    # row count unchanged
+    assert len(result) == len(df)
+
+    # property_type unified
+    if "property_type" in result.columns:
+        assert (result["property_type"] == "apartment").all()
+
+    # completion_status normalized
+    assert "completed_primary" not in result["completion_status"].values
+    assert "off_plan_primary" not in result["completion_status"].values
+
+    # town: City word removed
+    assert all("City" not in t for t in result["town"].values)
+
+    # district: lowercased, no punctuation
+    assert all(d == d.lower() for d in result["district"].values)
+    assert all("!" not in d for d in result["district"].values)
+
+    # furnished mapped
+    assert "YES" not in result["furnished"].values
+    assert "NO" not in result["furnished"].values
+    assert "PARTLY" not in result["furnished"].values
+
+    # single-value columns dropped
+    for col in ["price_period", "price_currency", "area_unit", "is_verified", "is_new_construction", "rera"]:
+        assert col not in result.columns
 
 def test_high_missingness_removal():
     df = pd.DataFrame({
