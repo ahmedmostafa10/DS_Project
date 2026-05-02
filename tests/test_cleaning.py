@@ -209,17 +209,14 @@ def test_apply_clipping():
 
 
 def test_handle_outliers():
-    df = pd.DataFrame(
-        {
-            "area_value": [10, 20, 10000],
-            "dist_nearest_school_km": [1, 2, 100],
-            "school_count_within_3km": [1, 2, 100],
-        }
-    )
+    df = pd.DataFrame({
+        "area_value": [10, 20, 10000],
+        "dist_nearest_transit_station_km": [1, 2, 100],
+        "school_count_within_3km": [1, 2, 100]
+    })
 
-    result = handle_outliers_with_clipping(
-        df, distance_columns=["dist_nearest_school_km"], count_columns=["school_count_within_3km"]
-    )
+    result = handle_outliers_with_clipping(df, clipping_columns=["dist_nearest_transit_station_km"], \
+                                           log_columns=["school_count_within_3km"])
 
     assert result.shape[0] == 3
     assert "area_value" in result.columns

@@ -18,9 +18,16 @@ CLEANING_LOGGING_PATH = config["paths"]["cleaning_logging_path"]
 
 IRRELEVANT_COLUMNS_TO_REMOVE = config["data"]["irrelevant_columns_to_remove"]
 
+
 DISTANCE_COLUMNS = config["data"]["distance_columns"]
 
 COUNT_COLUMNS = config["data"]["count_columns"]
+
+
+CLIPPING_COLUMNS=["dist_nearest_transit_station_km","mall_count_within_3km","transit_station_count_within_3km"]
+LOG_COLUMNS=["dist_nearest_school_km", "dist_nearest_hospital_km","dist_nearest_supermarket_km", 
+        "dist_nearest_mall_km","dist_nearest_cafe_restaurant_km","school_count_within_3km", "hospital_count_within_3km",
+    "supermarket_count_within_3km", "cafe_restaurant_count_within_3km",]
 
 # for accuracy-based quarantine
 MAX_VALID_AREA = config["rules"]["max_valid_area"]
@@ -35,15 +42,12 @@ MIN_VALID_BEDROOMS = config["rules"]["min_valid_bedrooms"]
 # for outlier
 AREA_LOWER_PERC = config["outliers"]["area_lower_perc"]
 AREA_UPPER_PERC = config["outliers"]["area_upper_perc"]
-DISTANCE_LOWER_PERC = config["outliers"]["distance_lower_perc"]
-DISTANCE_UPPER_PERC = config["outliers"]["distance_upper_perc"]
-COUNT_LOWER_PERC = config["outliers"]["count_lower_perc"]
-COUNT_UPPER_PERC = config["outliers"]["count_upper_perc"]
-
 NUMERICAL_COLUMNS = config["data"]["numerical_columns"]
 BOOLEAN_COLUMNS = config["data"]["boolean_columns"]
 CATEGORICAL_COLUMNS = config["data"]["categorical_columns"]
 
+POI_LOWER_PERC = config["outliers"]["poi_lower_perc"]
+POI_UPPER_PERC = config["outliers"]["poi_upper_perc"]
 #####################       SETUP LOGGING       #####################
 os.makedirs(os.path.dirname(CLEANING_LOGGING_PATH), exist_ok=True)
 os.makedirs(os.path.dirname(CLEANING_LOG_REPORT_PATH), exist_ok=True)
@@ -577,9 +581,7 @@ def apply_clipping(df, column, lower_perc, upper_perc):
     return df_clipped, number_of_clipped_values
 
 
-def handle_outliers_with_clipping(
-    df, distance_columns=DISTANCE_COLUMNS, count_columns=COUNT_COLUMNS
-):
+def handle_outliers_with_clipping(df,clipping_columns=CLIPPING_COLUMNS,log_columns=LOG_COLUMNS):
     df_cleaned = df.copy()
 
     # ---- Area ----
@@ -598,38 +600,42 @@ def handle_outliers_with_clipping(
         ),
     )
 
-    # ---- Distance columns ----
-    for column in distance_columns:
-        df_cleaned, clipped_numbers = apply_clipping(
-            df_cleaned, column, DISTANCE_LOWER_PERC, DISTANCE_UPPER_PERC
-        )
+    # Clipping columns
+    for column in clipping_columns:
+        if column not in df_cleaned.columns: 
+            print(f"Warning: Column '{column}' not found in dataframe. Skipping clipping for this column.")
+            continue
+
+        df_cleaned, clipped_numbers = apply_clipping(df_cleaned, column, POI_LOWER_PERC, POI_UPPER_PERC)  # FIXED: df → df_cleaned
 
         log_cleaning_action(
             step="outlier",
             rule=f"clip_{column}_outliers",
             records_affected=clipped_numbers,
-            action=f"Clipped '{column}' to {DISTANCE_LOWER_PERC * 100}th and {DISTANCE_UPPER_PERC * 100}th percentiles",
+            action=f"Clipped '{column}' to {POI_UPPER_PERC*100}th percentile",
             rationale=(
-                f"Clipping extreme outliers in '{column}' reduces their disproportionate "
-                "influence on the model while preserving the overall distribution shape."
-            ),
+                f"Clipping extreme outliers in '{column}' reduces their disproportionate"
+                "influence on the model while preserving the overall distribution shape. "
+            )
         )
 
     # ---- Count columns ----
-    for column in count_columns:
-        df_cleaned, clipped_numbers = apply_clipping(
-            df_cleaned, column, COUNT_LOWER_PERC, COUNT_UPPER_PERC
-        )
+    for column in log_columns:  #
+        if column not in df_cleaned.columns: 
+            print(f"Warning: Column '{column}' not found in dataframe. Skipping log transformation.")
+            continue
+
+        df_cleaned[column] = np.log1p(df_cleaned[column])  # FIXED: df → df_cleaned
 
         log_cleaning_action(
             step="outlier",
-            rule=f"clip_{column}_outliers",
-            records_affected=clipped_numbers,
-            action=f"Clipped '{column}' to {COUNT_LOWER_PERC * 100}th and {COUNT_UPPER_PERC * 100}th percentiles",
+            rule=f"log_transform_{column}",
+            records_affected=df_cleaned[column].notna().sum(),
+            action=f"Applied log1p transformation on '{column}'",
             rationale=(
-                f"Clipping extreme outliers in '{column}' reduces their disproportionate "
-                "influence on the model while preserving the overall distribution shape."
-            ),
+                f"Log transformation reduces right skewness in '{column}' and compresses extreme values, "
+                "making the distribution more stable and less sensitive to outliers while preserving ordering."
+            )
         )
 
     return df_cleaned
@@ -685,8 +691,8 @@ if __name__ == "__main__":
     cleaning_pipeline.add_step(drop_duplicates)
     cleaning_pipeline.add_step(
         handle_outliers_with_clipping,
-        distance_columns=DISTANCE_COLUMNS,
-        count_columns=COUNT_COLUMNS,
+        clipping_columns=CLIPPING_COLUMNS,
+        log_columns=LOG_COLUMNS
     )
 
     clean_df = cleaning_pipeline.fit_transform(df)

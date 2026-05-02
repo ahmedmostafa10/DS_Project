@@ -1,4 +1,4 @@
-PYTHON := PYTHONPATH=. python  # this for conda 
+PYTHON := PYTHONPATH=. python  
 
 .PHONY: all data feature train test clean
 

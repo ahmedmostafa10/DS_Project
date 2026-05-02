@@ -124,10 +124,8 @@ min_valid_bedrooms = 1
 [outliers]
 area_lower_perc = 0.01
 area_upper_perc = 0.99
-distance_lower_perc = 0.0
-distance_upper_perc = 0.95
-count_lower_perc = 0.0
-count_upper_perc = 0.95
+poi_lower_perc = 0.0
+poi_upper_perc = 0.95
 
 
 
