@@ -1,35 +1,35 @@
 import os
-import joblib
+import tomllib
 from datetime import datetime
-import warnings
-warnings.filterwarnings("ignore")
 
+import joblib
+import matplotlib.pyplot as plt
 import mlflow
 import mlflow.sklearn
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix ,f1_score
-from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from xgboost import XGBClassifier
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.tree import DecisionTreeClassifier
+from xgboost import XGBClassifier
 
 from configs.models_grid_search_params import MODEL_PARAMS
 
+with open("./configs/config.toml", "rb") as f:
+    config = tomllib.load(f)
 
-EXPERIMENT_NAME="house_price_prediction_experiment"
-TRAIN_CONFUSION_MATRIX_PATH = './reports/train_confusion_matrix.png'
-VALIDATION_CONFUSION_MATRIX_PATH = './reports/validation_confusion_matrix.png'
-TEST_CONFUSION_MATRIX_PATH = './reports/test_confusion_matrix.png'
-MLFLOW_DB_MODEL_PATH = './models/mlflow.db'
-MODELS_DIR = "./models"
+EXPERIMENT_NAME = "house_price_prediction_experiment"
+TRAIN_CONFUSION_MATRIX_PATH = config["paths"]["train_confusion_matrix"]
+VALIDATION_CONFUSION_MATRIX_PATH = config["paths"]["validation_confusion_matrix"]
+TEST_CONFUSION_MATRIX_PATH = config["paths"]["test_confusion_matrix"]
+MLFLOW_DB_MODEL_PATH = config["paths"]["mlflow_db"]
+MODELS_DIR = config["paths"]["models_dir"]
 
-TRAIN_PATH = "./data/processed/train.csv"
-VALIDATION_PATH = "./data/processed/validation.csv"
-TEST_PATH = "./data/processed/test.csv"
+TRAIN_PATH = config["paths"]["train_path"]
+VALIDATION_PATH = config["paths"]["validation_path"]
+TEST_PATH = config["paths"]["test_path"]
 
 
 class Evaluator:
@@ -42,11 +42,11 @@ class Evaluator:
 
     def save_confusion_matrix(self, cm, filename):
         plt.figure()
-        sns.heatmap(cm, annot=True, fmt="d") 
+        sns.heatmap(cm, annot=True, fmt="d")
         plt.xlabel("Predicted")
         plt.ylabel("Actual")
         plt.savefig(filename)
-        plt.close()     
+        plt.close()
 
 
 class ModelTrainer:
@@ -73,10 +73,10 @@ class ModelTrainer:
             "logistic_regression": LogisticRegression(max_iter=25_000, random_state=42),
             "decision_tree": DecisionTreeClassifier(random_state=42),
             "random_forest": RandomForestClassifier(random_state=42, n_jobs=-1),
-            "xgboost": XGBClassifier(random_state=42,n_jobs=-1,eval_metric="logloss"),
+            "xgboost": XGBClassifier(random_state=42, n_jobs=-1, eval_metric="logloss"),
             # "svc": SVC(),
         }
-        
+
         # setup mlflow
         mlflow.set_tracking_uri(f"sqlite:///{MLFLOW_DB_MODEL_PATH}")
         mlflow.set_experiment(experiment_name)
@@ -90,11 +90,7 @@ class ModelTrainer:
 
             with mlflow.start_run(run_name=run_name):
                 grid = GridSearchCV(
-                    estimator=model,
-                    param_grid=params,
-                    cv=3,
-                    scoring="f1_macro",
-                    n_jobs=-1
+                    estimator=model, param_grid=params, cv=3, scoring="f1_macro", n_jobs=-1
                 )
 
                 grid.fit(self.X_train, self.y_train)
@@ -104,17 +100,21 @@ class ModelTrainer:
                 train_pred = best_model.predict(self.X_train)
                 val_pred = best_model.predict(self.X_val)
 
-                train_acc, train_f1, train_rep, train_cm = self.evaluator.evaluate(self.y_train, train_pred)
+                train_acc, train_f1, train_rep, train_cm = self.evaluator.evaluate(
+                    self.y_train, train_pred
+                )
                 val_acc, val_f1, val_rep, val_cm = self.evaluator.evaluate(self.y_val, val_pred)
 
                 mlflow.log_params(grid.best_params_)
-                mlflow.log_metrics({
-                    "train_acc": train_acc,
-                    "val_acc": val_acc,
-                    "train_macro_f1": train_f1,
-                    "val_macro_f1": val_f1,
-                    "cv_f1_macro": grid.best_score_
-                })
+                mlflow.log_metrics(
+                    {
+                        "train_acc": train_acc,
+                        "val_acc": val_acc,
+                        "train_macro_f1": train_f1,
+                        "val_macro_f1": val_f1,
+                        "cv_f1_macro": grid.best_score_,
+                    }
+                )
 
                 mlflow.log_text(train_rep, "train_report.txt")
                 mlflow.log_text(val_rep, "val_report.txt")
@@ -144,12 +144,13 @@ class ModelTrainer:
             os.remove(latest_path)
 
         existing_versions = [
-            f for f in os.listdir(self.model_dir)
+            f
+            for f in os.listdir(self.model_dir)
             if f.startswith("best_model_") and f.endswith(".pkl") and f != "best_model_latest.pkl"
         ]
 
         version = len(existing_versions)
-        version_path = os.path.join(self.model_dir,f"best_model_{version}.pkl")
+        version_path = os.path.join(self.model_dir, f"best_model_{version}.pkl")
 
         joblib.dump(self.best_model, latest_path)
         joblib.dump(self.best_model, version_path)
@@ -161,14 +162,12 @@ class ModelTrainer:
         print("Versioned:", version_path)
 
 
-
 if __name__ == "__main__":
-
     trainer = ModelTrainer(
         train_path=TRAIN_PATH,
         val_path=VALIDATION_PATH,
         experiment_name=EXPERIMENT_NAME,
-        model_dir=MODELS_DIR
+        model_dir=MODELS_DIR,
     )
 
     best_model = trainer.train_all(MODEL_PARAMS)
