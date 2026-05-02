@@ -6,7 +6,7 @@ import pytest
 
 from scripts.data.data_cleaning import remove_irrelevant_columns,accuracy_rule_based_correction,\
       accuracy_qurantine_based_fixing, high_missingness_removal,fill_district_with_mode,\
-      impute_missing, drop_duplicates,apply_clipping, handle_outliers_with_clipping,\
+      fix_missingness, drop_duplicates,apply_clipping, handle_outliers_with_clipping,\
       DISTANCE_COLUMNS, COUNT_COLUMNS
 
 def test_remove_irrelevant_columns():
@@ -92,11 +92,24 @@ def test_impute_missing():
         "bathroom": [1]
     })
 
-    result = impute_missing(df)
+    result = fix_missingness(df)
 
     assert "Missing" in result["furnished"].values 
     assert result["furnished"].isna().sum() == 0
     assert result["district"].isna().sum() == 0
+
+    df_2 = pd.DataFrame({
+        "city": ["A", "A"],
+        "town": ["T", "T"],
+        "district": pd.Series(["6th october", "6th october"], dtype="category"),
+        "furnished": pd.Series(["yes", "yes"], dtype="category"),
+        "completion_status": ["done", np.nan],
+        "bathroom": [np.nan,1]
+    })
+
+    result_2 = fix_missingness(df_2)
+    assert result_2.shape[0] == 0
+
 
 def test_drop_duplicates():
     df = pd.DataFrame({

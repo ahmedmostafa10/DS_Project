@@ -259,7 +259,7 @@ def fill_district_with_mode(df):
     return df,number_of_missing_districts
 
 
-def impute_missing(df):
+def fix_missingness(df):
     df_cleaned = df.copy()
 
     # District Imputation 
@@ -452,7 +452,7 @@ if __name__ == "__main__":
     # TODO: add consistency here
 
     cleaning_pipeline.add_step(high_missingness_removal)
-    cleaning_pipeline.add_step(impute_missing)
+    cleaning_pipeline.add_step(fix_missingness)
     cleaning_pipeline.add_step(drop_duplicates)
     cleaning_pipeline.add_step(handle_outliers_with_clipping,\
                                 distance_columns=DISTANCE_COLUMNS, count_columns=COUNT_COLUMNS)
