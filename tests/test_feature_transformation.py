@@ -110,16 +110,127 @@ def test_encode_features(ft, scaled):
 
 
 def test_add_arithmetic_features(ft, encoded):
-    assert ""
+    X_train, *_ = encoded
 
+    out = ft.add_arithmetic_features(X_train.copy())
+
+    assert "area_per_bedroom" in out.columns
+    assert "area_per_bathroom" in out.columns
+    assert "bathroom_per_bedroom" in out.columns
+    assert "total_rooms" in out.columns
+    assert "total_services_count_3km" in out.columns
+
+    expected_area_per_bedroom = X_train["area_value"] / X_train["bedrooms"]
+    pd.testing.assert_series_equal(
+        out["area_per_bedroom"],
+        expected_area_per_bedroom,
+        check_names=False
+    )
+
+    expected_area_per_bathroom = X_train["area_value"] / X_train["bathroom"]
+    pd.testing.assert_series_equal(
+        out["area_per_bathroom"],
+        expected_area_per_bathroom,
+        check_names=False
+    )
+
+    expected_bathroom_per_bedroom = X_train["bathroom"] / X_train["bedrooms"]
+    pd.testing.assert_series_equal(
+        out["bathroom_per_bedroom"],
+        expected_bathroom_per_bedroom,
+        check_names=False
+    )
+
+    expected_total_rooms = X_train["bathroom"] + X_train["bedrooms"]
+    pd.testing.assert_series_equal(
+        out["total_rooms"],
+        expected_total_rooms,
+        check_names=False
+    )
+
+    count_cols = [
+        "school_count_within_3km",
+        "hospital_count_within_3km",
+        "supermarket_count_within_3km",
+        "mall_count_within_3km",
+        "transit_station_count_within_3km",
+        "cafe_restaurant_count_within_3km"
+    ]
+
+    expected_services = X_train[count_cols].sum(axis=1)
+
+    pd.testing.assert_series_equal(
+        out["total_services_count_3km"],
+        expected_services,
+        check_names=False
+    )
 
 def test_fit_and_apply_location_stats(ft, encoded):
-    assert ""
+    X_train, *_ = encoded
 
+    X_train = ft.add_arithmetic_features(X_train.copy())
+
+    district_stats, town_stats, global_stats = ft.fit_location_stats(X_train)
+
+    assert isinstance(district_stats, pd.DataFrame)
+    assert isinstance(town_stats, pd.DataFrame)
+    assert isinstance(global_stats, dict)
+
+    assert "district_avg_area" in district_stats.columns
+    assert "town_avg_area" in town_stats.columns
+    assert "area_value" in global_stats
+
+def test_apply_location_stats(ft, encoded):
+    X_train, X_val, *_ = encoded
+
+    X_train = ft.add_arithmetic_features(X_train.copy())
+    X_val = ft.add_arithmetic_features(X_val.copy())
+
+    district_stats, town_stats, global_stats = ft.fit_location_stats(X_train)
+
+    out = ft.apply_location_stats(
+        X_val.copy(),
+        district_stats,
+        town_stats,
+        global_stats
+    )
+
+    assert "district_avg_area" in out.columns
+    assert "town_avg_area" in out.columns
+    assert "area_vs_district_avg" in out.columns
+
+    assert out["district_avg_area"].isna().sum() == 0
+    assert out["town_avg_area"].isna().sum() == 0
+
+    expected_ratio = (
+        (out["area_value"] - out["district_avg_area"])
+        / out["district_avg_area"]
+    )
+
+    pd.testing.assert_series_equal(
+        out["area_vs_district_avg"],
+        expected_ratio,
+        check_names=False
+    )
+    assert np.isfinite(out["area_vs_district_avg"]).all()
 
 def test_apply_binary_features(ft, encoded):
-   
-    assert ""
+    X_train, *_ = encoded
+
+    area_median = X_train["area_value"].median()
+    out = ft.apply_binary_features(X_train.copy(), area_median)
+
+    assert "is_large_house" in out.columns
+    assert "is_small_house" in out.columns
+    assert "near_school" in out.columns
+    assert "near_mall" in out.columns
+    assert "high_quality_listing" in out.columns
+
+
+    assert (out["is_large_house"] == (X_train["area_value"] > area_median)).all()
+    assert (out["is_small_house"] == (X_train["area_value"] < area_median)).all()
+    assert (out["near_school"] == (X_train["dist_nearest_school_km"] < 1)).all()
+    assert (out["near_mall"] == (X_train["dist_nearest_mall_km"] < 2)).all()
 
 def test_find_correlated_features(ft):
     df = pd.DataFrame({"A": [1.0, 2.0, 3.0, 4.0, 5.0], "B": [1.0, 2.0, 3.0, 4.0, 5.0], "C": [5.0, 3.0, 1.0, 2.0, 4.0]})
