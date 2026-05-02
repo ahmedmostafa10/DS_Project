@@ -3,15 +3,17 @@ import logging
 
 import numpy as np
 import pandas as pd
+import tomllib
 
-
+with open("./configs/config.toml", "rb") as f:
+    config = tomllib.load(f)
 #################       CONSTANTS       #####################
 
-RAW_DATA_PATH= "./../../data/raw/data.csv"
-CLEANED_DATA_PATH="./../../data/cleaned/cleaned_data.csv"
-QUARANTINE_LOG_PATH="./../../data/cleaned/cleaning_quarantined_data.csv"
-CLEANING_LOG_REPORT_PATH="./../../reports/cleaning_log_report.csv"
-CLEANING_LOGGING_PATH="./../../reports/cleaning.log"
+RAW_DATA_PATH = config["paths"]["raw_data_path"]
+CLEANED_DATA_PATH = config["paths"]["cleaned_data_path"]
+QUARANTINE_LOG_PATH = config["paths"]["quarantine_log_path"]
+CLEANING_LOG_REPORT_PATH = config["paths"]["cleaning_log_report_path"]
+CLEANING_LOGGING_PATH = config["paths"]["cleaning_logging_path"]
 
 IRRELEVANT_COLUMNS_TO_REMOVE = [
         "listing_id","internal_id","detail_url","title","images_count","has_video","video_url","reference","description",
@@ -33,24 +35,28 @@ COUNT_COLUMNS = [
 ]
 
 # for accuracy-based quarantine
-MAX_VALID_AREA = 1000
-MIN_VALID_AREA = 40
-MAX_VALID_PRICE=20_000_000
-MIN_VALID_LON = 25.0
-MAX_VALID_LON=35.0
-MIN_VALID_LAT = 22.0
-MAX_VALID_LAT=31.0
-MIN_VALID_BEDROOMS=1
+MAX_VALID_AREA = config["rules"]["max_valid_area"]
+MIN_VALID_AREA = config["rules"]["min_valid_area"]
+MAX_VALID_PRICE = config["rules"]["max_valid_price"]
+MIN_VALID_LON = config["rules"]["min_valid_lon"]
+MAX_VALID_LON = config["rules"]["max_valid_lon"]
+MIN_VALID_LAT = config["rules"]["min_valid_lat"]
+MAX_VALID_LAT = config["rules"]["max_valid_lat"]
+MIN_VALID_BEDROOMS = config["rules"]["min_valid_bedrooms"]
 
 # for outlier
-AREA_LOWER_PERC = 0.01
-AREA_UPPER_PERC = 0.99
-DISTANCE_LOWER_PERC = 0.0
-DISTANCE_UPPER_PERC = 0.95
-COUNT_LOWER_PERC = 0.0
-COUNT_UPPER_PERC = 0.95
-#####################       SETUP LOGGING       #####################
+AREA_LOWER_PERC = config["outliers"]["area_lower_perc"]
+AREA_UPPER_PERC = config["outliers"]["area_upper_perc"]
+DISTANCE_LOWER_PERC = config["outliers"]["distance_lower_perc"]
+DISTANCE_UPPER_PERC = config["outliers"]["distance_upper_perc"]
+COUNT_LOWER_PERC = config["outliers"]["count_lower_perc"]
+COUNT_UPPER_PERC = config["outliers"]["count_upper_perc"]
 
+NUMERICAL_COLUMNS =config['data']['numerical_columns']
+BOOLEAN_COLUMNS = config['data']['boolean_columns'] 
+CATEGORICAL_COLUMNS = config['data']['categorical_columns']
+
+#####################       SETUP LOGGING       #####################
 os.makedirs(os.path.dirname(CLEANING_LOGGING_PATH), exist_ok=True)
 os.makedirs(os.path.dirname(CLEANING_LOG_REPORT_PATH), exist_ok=True)
 os.makedirs(os.path.dirname(CLEANED_DATA_PATH), exist_ok=True)
@@ -354,6 +360,91 @@ def fix_consistency(df: pd.DataFrame) -> pd.DataFrame:
                 records_affected=0, action=f"dropped '{col}' column",
                 rationale="Column is redundant when it contains only a single or no unique value"
             )
+
+    
+    log_cleaning_action(
+        step="consistency", rule="standardize_missing_values",  
+        records_affected=df_cleaned.isin(["nan", "none", "None", "", "null", "NULL"]).sum().sum(),
+        action="replaced common string representations of missing values with np.nan",
+        rationale="Standardizes various string representations of missing values to np.nan for consistent handling"
+    )
+   
+
+    df_cleaned = df_cleaned.replace(
+    ["nan", "none", "None", "", "null", "NULL"],
+    np.nan
+    )
+
+    for col in NUMERICAL_COLUMNS:
+        df_cleaned[col] = pd.to_numeric(df_cleaned[col], errors="coerce")
+
+    log_cleaning_action(
+        step="consistency", rule="convert_numerical_columns",
+        records_affected=df_cleaned[NUMERICAL_COLUMNS].notna().sum().sum(),
+        action=f"converted columns {NUMERICAL_COLUMNS} to numeric, coercing errors to NaN",
+        rationale="Ensures numerical columns are in the correct data type for analysis and modeling"
+    )
+
+
+
+    log_cleaning_action(
+
+        step="consistency", rule="standardize_bathroom_values",
+        records_affected=int(df_cleaned["bathroom"].isin(["none", "7+"]).sum()),
+        action="replaced 'none' with NaN and '7+' with 7 in 'bathroom' column",
+        rationale="Standardizes bathroom count values for consistency and correct data type"
+    )
+
+    df_cleaned["bedrooms"] = pd.to_numeric(df_cleaned["bedrooms"], errors="coerce").astype("Int64")
+    df_cleaned["bathroom"] = (
+        df_cleaned["bathroom"]
+        .replace({
+            "none": np.nan,
+            "7+": 7
+        })
+    )
+  
+    df_cleaned["bathroom"] = pd.to_numeric(
+        df_cleaned["bathroom"],
+        errors="coerce"
+    ).astype("Int64")
+
+    log_cleaning_action(
+        step="consistency", rule="convert_bathroom_to_numeric", 
+        records_affected=len(df_cleaned["bathroom"] ),
+        action="converted 'bathroom' column to numeric, replacing 'none' with NaN and '7+' with 7",
+        rationale="Standardizes bathroom count values for consistency and correct data type"
+    )
+
+    for col in BOOLEAN_COLUMNS:
+        df_cleaned[col] = df_cleaned[col].astype("boolean")
+
+    log_cleaning_action(
+        step="consistency", rule="convert_boolean_columns",
+        records_affected=df_cleaned[BOOLEAN_COLUMNS].notna().sum().sum(),
+        action=f"converted columns {BOOLEAN_COLUMNS} to boolean dtype",
+        rationale="Ensures boolean columns are in the correct data type for analysis and modeling"
+    )
+
+    df_cleaned["lat"] = df_cleaned["lat"].round(6)
+    df_cleaned["lon"] = df_cleaned["lon"].round(6)
+
+    log_cleaning_action(
+        step="consistency", rule="round_coordinates",   
+        records_affected=df_cleaned[["lat", "lon"]].notna().sum().sum(),
+        action="rounded 'lat' and 'lon' to 6 decimal places",
+        rationale="Reduces noise from overly precise coordinate values that may not be meaningful for modeling"
+    )
+    for col in CATEGORICAL_COLUMNS:
+        df_cleaned[col] = df_cleaned[col].astype("category")
+
+    log_cleaning_action(
+        step="consistency", rule="convert_categorical_columns", 
+        records_affected=df_cleaned[CATEGORICAL_COLUMNS].notna().sum().sum(),
+        action=f"converted columns {CATEGORICAL_COLUMNS} to categorical dtype",
+        rationale="Optimizes memory usage and ensures categorical columns are in the correct data type for analysis and modeling"
+    )
+
  
     return df_cleaned
 
@@ -362,7 +453,8 @@ def fill_district_with_mode(df):
 
     if number_of_missing_districts == 0:
         return df,0
-        
+    print('---------------------------------------------------------------------')
+    print(df["district"].dtypes)
     df["district"] = df["district"].cat.add_categories(["Unknown"])
     group_mode = df.groupby(['city', 'town'])['district'].transform(
         lambda x: x.mode().iloc[0] if not x.mode().empty else np.nan

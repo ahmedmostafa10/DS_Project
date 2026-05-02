@@ -1,5 +1,6 @@
 import os
 
+import tomllib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,12 +12,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
 
+with open("./configs/config.toml", "rb") as f:
+    config = tomllib.load(f)
 
-CLEANED_DATA_PATH = "./../data/cleaned/cleaned_data.csv"
-TRANSFORMATION_LOG_REPORT_PATH = "./../reports/transformation_log_report.csv"
-TRANSFORMATION_LOGGING_PATH = "./../reports/transformation.log"
-os.makedirs("./../data/processed", exist_ok=True)
-os.makedirs("./../reports", exist_ok=True)
+CLEANED_DATA_PATH = config["paths"]["cleaned_data_path"]
+TRANSFORMATION_LOG_REPORT_PATH = config["paths"]["transformation_log_report_path"]
+TRANSFORMATION_LOGGING_PATH = config["paths"]["transformation_logging_path"]
+PROCESSED_DIR = config["paths"]["processed_data_dir"]
+os.makedirs(PROCESSED_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(TRANSFORMATION_LOG_REPORT_PATH), exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,10 +63,23 @@ class FeatureTransformation:
     def split_data(self, df):
         X = df.drop(['price_egp', 'price_egp_bin'], axis=1)
         y = df['price_egp_bin']
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, stratify=y, random_state=42)
-        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.15, stratify=y_train, random_state=42)
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=config["split"]["test_size"],
+            stratify=y,
+            random_state=config["split"]["random_state"]
+        )
+
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_train, y_train,
+            test_size=config["split"]["val_size"],
+            stratify=y_train,
+            random_state=config["split"]["random_state"]
+        )
+
         return X_train.copy(), X_val.copy(), X_test.copy(), y_train, y_val, y_test
-    
+        
 
     def scale_features(self, X_train, X_val, X_test):
 
@@ -141,13 +158,9 @@ class FeatureTransformation:
         return X_train, X_val, X_test
 
     def encode_features(self, X_train, X_val, X_test):
-        listing_map = {
-            "standard": 0,
-            "featured": 1,
-            "premium": 2,
-            "hot": 3,
-            "superhot": 4
-        }
+        listing_map = config["encoding"]["listing_level"]
+
+
         for df_ in [X_train, X_val, X_test]:
             df_["listing_level"] = df_["listing_level"].map(listing_map)
         self.log_transformation_action(
@@ -157,7 +170,7 @@ class FeatureTransformation:
             reason="To convert the categorical feature into a numerical format, while preserving the ordinal relationship between the categories."
         )
 
-        cat_cols = ["completion_status", "furnished"]
+        cat_cols = config["encoding"]["cat_col"]
         encoder = OneHotEncoder(drop='first', handle_unknown='ignore', sparse_output=False)
         encoded_train = encoder.fit_transform(X_train[cat_cols])
         encoded_val = encoder.transform(X_val[cat_cols])
@@ -171,12 +184,12 @@ class FeatureTransformation:
         X_test = pd.concat([X_test.drop(columns=cat_cols), encoded_test], axis=1)
         self.log_transformation_action(
             stage="Feature Encoding",
-            column="completion_status, furnished",
+            column=", ".join(cat_cols),
             action="One-Hot Encoding",
             reason="To convert the categorical features into a numerical format, without assuming any ordinal relationship between the categories."
         )
 
-        freq_cols = ["city", "town", "district"]
+        freq_cols = config["encoding"]["freq_col"]
         for col in freq_cols:
             freq_map = X_train[col].value_counts(normalize=True)
             for df in [X_train, X_val, X_test]:
@@ -207,24 +220,10 @@ class FeatureTransformation:
         df["bathroom_per_bedroom"] = df["bathroom"] / (df["bedrooms"])
         df["total_rooms"] = df["bathroom"] + df["bedrooms"]
 
-        count_cols = [
-            "school_count_within_3km",
-            "hospital_count_within_3km",
-            "supermarket_count_within_3km",
-            "mall_count_within_3km",
-            "transit_station_count_within_3km",
-            "cafe_restaurant_count_within_3km"
-        ]
+        count_cols =config["data"]["count_columns"]
         df["total_services_count_3km"] = df[count_cols].sum(axis=1)
 
-        dist_cols = [
-            "dist_nearest_school_km",
-            "dist_nearest_hospital_km",
-            "dist_nearest_supermarket_km",
-            "dist_nearest_mall_km",
-            "dist_nearest_transit_station_km",
-            "dist_nearest_cafe_restaurant_km"
-        ]
+        dist_cols = config["data"]["distance_columns"]
         df["avg_distance_services_3km"] = df[dist_cols].mean(axis=1)
         df["min_distance_services_3km"] = df[dist_cols].min(axis=1)
         df["accessibility_score"] = sum(1 / (df[col] + 1) for col in dist_cols)
@@ -340,7 +339,9 @@ class FeatureTransformation:
         return pd.DataFrame(correlated_pairs)
 
     def select_features(self, X_train, X_val, X_test, y_train):
-        selector = VarianceThreshold(threshold=0.1)
+        selector = VarianceThreshold(
+        threshold=config["feature_selection"]["variance_threshold"]
+    )
         X_train_var = selector.fit_transform(X_train)
         selected_features = X_train.columns[selector.get_support()]
         X_train = pd.DataFrame(X_train_var, columns=selected_features, index=X_train.index)
@@ -357,7 +358,8 @@ class FeatureTransformation:
         corr = X_train.corrwith(y_train).abs().sort_values(ascending=False)
        
 
-        selected_corr = corr[corr > 0.005].index.tolist()
+        selected_corr = corr[corr > config["feature_selection"]["correlation_threshold"]].index.tolist()
+       
         X_train = X_train[selected_corr]
         X_val = X_val[selected_corr]
         X_test = X_test[selected_corr]
@@ -372,7 +374,7 @@ class FeatureTransformation:
         df_corr["target"] = y_train
         corr_matrix = df_corr.corr()
        
-        correlated_features = self.find_correlated_features(corr_matrix, threshold=0.9)
+        correlated_features = self.find_correlated_features(corr_matrix, threshold=config["feature_selection"]["multicollinearity_threshold"])
       
 
         features_to_remove = set()
@@ -398,7 +400,13 @@ class FeatureTransformation:
     
 
         model = RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1)
-        self.rfecv = RFECV(estimator=model, step=1, cv=5, scoring="f1_macro", n_jobs=-1)
+        self.rfecv = RFECV(
+        estimator=model,
+        step=config["feature_selection"]["rfecv_step"],
+        cv=config["feature_selection"]["rfecv_cv"],
+        scoring=config["feature_selection"]["rfecv_scoring"],
+        n_jobs=-1
+    )
         self.rfecv.fit(X_train, y_train)
 
         self.selected_rfecv = X_train.columns[self.rfecv.support_]
@@ -418,22 +426,31 @@ class FeatureTransformation:
 
     def save_outputs(self, X_train, X_val, X_test, y_train, y_val, y_test):
        
+        # print the statistics like col rows num and 
+        print (f"Final feature set: {X_train.columns.tolist()}")
+        print (f"Number of features selected: {X_train.shape[1]}")
+        print (f"Number of training samples: {X_train.shape[0]}")
+
+        #also for test and val
+        print (f"Number of validation samples: {X_val.shape[0]}")
+        print (f"Number of test samples: {X_test.shape[0]}")
+
         
 
         transformation_log_df = pd.DataFrame(self.transformation_log_report)
-        transformation_log_df.to_csv(TRANSFORMATION_LOG_REPORT_PATH, index=False)
+        transformation_log_df.to_csv(config["paths"]["transformation_log_report_path"], index=False)
 
         train_df = X_train.copy()
         train_df["target"] = y_train
-        train_df.to_csv("./../data/processed/train.csv", index=False)
+        train_df.to_csv(config["paths"]["train_path"], index=False)
 
         val_df = X_val.copy()
         val_df["target"] = y_val
-        val_df.to_csv("./../data/processed/validation.csv", index=False)
+        val_df.to_csv(config["paths"]["validation_path"], index=False)
 
         test_df = X_test.copy()
         test_df["target"] = y_test
-        test_df.to_csv("./../data/processed/test.csv", index=False)
+        test_df.to_csv(config["paths"]["test_path"], index=False)
 
 
 def pipeline():

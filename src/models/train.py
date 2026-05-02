@@ -16,20 +16,23 @@ from xgboost import XGBClassifier
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-
 from configs.models_grid_search_params import MODEL_PARAMS
 
+import tomllib
+
+with open("./configs/config.toml", "rb") as f:
+    config = tomllib.load(f)
 
 EXPERIMENT_NAME="house_price_prediction_experiment"
-TRAIN_CONFUSION_MATRIX_PATH = './reports/train_confusion_matrix.png'
-VALIDATION_CONFUSION_MATRIX_PATH = './reports/validation_confusion_matrix.png'
-TEST_CONFUSION_MATRIX_PATH = './reports/test_confusion_matrix.png'
-MLFLOW_DB_MODEL_PATH = './models/mlflow.db'
-MODELS_DIR = "./models"
+TRAIN_CONFUSION_MATRIX_PATH = config["paths"]["train_confusion_matrix"]
+VALIDATION_CONFUSION_MATRIX_PATH = config["paths"]["validation_confusion_matrix"]
+TEST_CONFUSION_MATRIX_PATH = config["paths"]["test_confusion_matrix"]
+MLFLOW_DB_MODEL_PATH = config["paths"]["mlflow_db"]
+MODELS_DIR = config["paths"]["models_dir"]
 
-TRAIN_PATH = "./data/processed/train.csv"
-VALIDATION_PATH = "./data/processed/validation.csv"
-TEST_PATH = "./data/processed/test.csv"
+TRAIN_PATH = config["paths"]["train_path"]
+VALIDATION_PATH = config["paths"]["validation_path"]
+TEST_PATH = config["paths"]["test_path"]
 
 
 class Evaluator:

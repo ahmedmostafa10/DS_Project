@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import pandas as pd
-from scripts.feature_transformation import FeatureTransformation
+from src.features.feature_transformation import FeatureTransformation
 
 
 def make_df(n=60, seed=42):

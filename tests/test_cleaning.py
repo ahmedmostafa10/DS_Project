@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-from scripts.data.data_cleaning import fix_consistency, remove_irrelevant_columns,accuracy_rule_based_correction,\
+from src.data.data_cleaning import fix_consistency, remove_irrelevant_columns,accuracy_rule_based_correction,\
       accuracy_qurantine_based_fixing, high_missingness_removal,fill_district_with_mode,\
       fix_missingness, drop_duplicates,apply_clipping, handle_outliers_with_clipping,\
       DISTANCE_COLUMNS, COUNT_COLUMNS

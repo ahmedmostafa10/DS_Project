@@ -2,10 +2,13 @@ import joblib
 import pandas as pd
 
 from src.models.train import Evaluator
+import tomllib
 
+with open("./configs/config.toml", "rb") as f:
+    config = tomllib.load(f)
 
-TEST_PATH = "./data/processed/test.csv"
-MODEL_PATH = "./models/best_model_latest.pkl"
+MODEL_PATH = config["prediction"]["model_path"]
+TEST_PATH = config["prediction"]["test_data_path"]
 
 def predict(MODEL_PATH, TEST_PATH):
     # Load the model
