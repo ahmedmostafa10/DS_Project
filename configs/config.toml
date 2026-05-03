@@ -70,6 +70,24 @@ count_columns = [
     "cafe_restaurant_count_within_3km"
 ]
 
+log_columns=[
+    "dist_nearest_school_km",
+    "dist_nearest_hospital_km",
+    "dist_nearest_supermarket_km",
+    "dist_nearest_mall_km",
+    "dist_nearest_cafe_restaurant_km",
+    "school_count_within_3km",
+    "hospital_count_within_3km",
+    "supermarket_count_within_3km",
+    "cafe_restaurant_count_within_3km",
+]
+
+clipping_columns=[
+    "dist_nearest_transit_station_km",
+    "mall_count_within_3km",
+    "transit_station_count_within_3km",
+]
+
 numerical_columns = [
    "price_egp",
     "lat",
