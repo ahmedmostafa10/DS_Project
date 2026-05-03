@@ -6,9 +6,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from scipy import stats
-from scipy.stats import f_oneway, chi2_contingency, shapiro, levene
+from scipy.stats import chi2_contingency, f_oneway, levene, shapiro
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
-
 
 # CONFIGURATION & CONSTANTS
 
@@ -298,9 +297,7 @@ def plot_categorical_bar_charts(
     for j in range(len(columns), len(axes)):
         axes[j].set_visible(False)
 
-    plt.suptitle(
-        "Categorical Feature Distributions", fontsize=14, fontweight="bold", y=1.01
-    )
+    plt.suptitle("Categorical Feature Distributions", fontsize=14, fontweight="bold", y=1.01)
     plt.tight_layout()
 
     if save_path:
@@ -586,9 +583,7 @@ def plot_stacked_and_clustered_bars(
     plot_df = df[df[feature].isin(top_cats)]
 
     # Build crosstab normalized by row (proportion per feature value)
-    ct_norm = pd.crosstab(plot_df[feature], plot_df[target_col], normalize="index")[
-        order
-    ]
+    ct_norm = pd.crosstab(plot_df[feature], plot_df[target_col], normalize="index")[order]
     ct_abs = pd.crosstab(plot_df[feature], plot_df[target_col])[order]
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
@@ -711,9 +706,7 @@ def plot_scatter_with_regression(
     # Stratified sample: equal proportion from each tier
     sample_parts = []
     for _, group in df.groupby(hue_col, observed=True):
-        sample_parts.append(
-            group.sample(n=min(sample_n // 3, len(group)), random_state=42)
-        )
+        sample_parts.append(group.sample(n=min(sample_n // 3, len(group)), random_state=42))
     sample = pd.concat(sample_parts, ignore_index=True)
 
     fig, ax = plt.subplots(figsize=(10, 7))
@@ -776,9 +769,7 @@ def plot_hexbin_density(
     clean = df[[x_col, y_col]].dropna()
 
     fig, ax = plt.subplots(figsize=(9, 6))
-    hb = ax.hexbin(
-        clean[x_col], clean[y_col], gridsize=gridsize, cmap="YlOrRd", mincnt=1
-    )
+    hb = ax.hexbin(clean[x_col], clean[y_col], gridsize=gridsize, cmap="YlOrRd", mincnt=1)
     plt.colorbar(hb, ax=ax, label="Count per bin")
     ax.set_title(f"2D Density: {x_col} vs {y_col}", fontweight="bold")
     ax.set_xlabel(x_col)
@@ -912,9 +903,7 @@ def plot_pairplot_structural(
     """
     sample_parts = []
     for _, group in df.groupby(target_col, observed=True):
-        sample_parts.append(
-            group.sample(n=min(sample_n // 3, len(group)), random_state=42)
-        )
+        sample_parts.append(group.sample(n=min(sample_n // 3, len(group)), random_state=42))
     sample = pd.concat(sample_parts, ignore_index=True)
 
     g = sns.pairplot(
@@ -967,9 +956,7 @@ def plot_parallel_coordinates(
 
     sample_parts = []
     for _, group in df.groupby(target_col, observed=True):
-        sample_parts.append(
-            group.sample(n=min(sample_n // 3, len(group)), random_state=42)
-        )
+        sample_parts.append(group.sample(n=min(sample_n // 3, len(group)), random_state=42))
     sample = pd.concat(sample_parts, ignore_index=True)
 
     valid_features = [f for f in features if f in df.columns]
@@ -999,13 +986,9 @@ def plot_parallel_coordinates(
     ax.set_xticks(list(x_positions))
     ax.set_xticklabels(valid_features, rotation=45, ha="right")
     ax.set_ylabel("Normalized Value [0–1]")
-    ax.set_title(
-        "Parallel Coordinates — All Key Features by Price Tier", fontweight="bold"
-    )
+    ax.set_title("Parallel Coordinates — All Key Features by Price Tier", fontweight="bold")
 
-    legend_elements = [
-        Line2D([0], [0], color=palette[c], linewidth=2, label=c) for c in order
-    ]
+    legend_elements = [Line2D([0], [0], color=palette[c], linewidth=2, label=c) for c in order]
     ax.legend(handles=legend_elements, title="Price Category", bbox_to_anchor=(1, 1))
 
     plt.tight_layout()
@@ -1040,9 +1023,7 @@ def plot_bubble_chart(
     """
     sample_parts = []
     for _, group in df.groupby(hue_col, observed=True):
-        sample_parts.append(
-            group.sample(n=min(sample_n // 3, len(group)), random_state=42)
-        )
+        sample_parts.append(group.sample(n=min(sample_n // 3, len(group)), random_state=42))
     sample = pd.concat(sample_parts, ignore_index=True)
 
     # Normalize size to [20, 400] for visibility
@@ -1094,9 +1075,7 @@ def plot_poi_count_comparison(
         save_path: Optional save path.
     """
     means = df.groupby(target_col, observed=True)[count_cols].mean().reindex(order)
-    short_names = [
-        c.replace("_count_within_3km", "").replace("_", " ") for c in count_cols
-    ]
+    short_names = [c.replace("_count_within_3km", "").replace("_", " ") for c in count_cols]
     means.columns = short_names
 
     ax = means.T.plot(
@@ -1305,9 +1284,7 @@ def rank_features_by_target_correlation(
             }
         )
 
-    return (
-        pd.DataFrame(rows).sort_values("abs_r", ascending=False).reset_index(drop=True)
-    )
+    return pd.DataFrame(rows).sort_values("abs_r", ascending=False).reset_index(drop=True)
 
 
 # DASHBOARD
@@ -1330,9 +1307,7 @@ def build_eda_dashboard(
     fig.patch.set_facecolor("white")
 
     # increase vertical spacing between rows
-    gs = fig.add_gridspec(
-        3, 3, hspace=0.28, wspace=0.28, height_ratios=[1.1, 0.85, 1.15]
-    )
+    gs = fig.add_gridspec(3, 3, hspace=0.28, wspace=0.28, height_ratios=[1.1, 0.85, 1.15])
 
     # ROW 1 (now): Area | Histogram | Box Plot
     ax_area = fig.add_subplot(gs[0, 0])
@@ -1449,9 +1424,7 @@ def build_eda_dashboard(
         linewidth=0.45,
         legend=False,
     )
-    ax_price_city.set_title(
-        "Price Tier by City\n(Top 10)", fontweight="bold", fontsize=32
-    )
+    ax_price_city.set_title("Price Tier by City\n(Top 10)", fontweight="bold", fontsize=32)
     ax_price_city.set_xlabel("Proportion", fontsize=30)
     ax_price_city.xaxis.set_major_formatter(mticker.PercentFormatter(xmax=1))
     ax_price_city.tick_params(axis="both", labelsize=26)
@@ -1503,8 +1476,7 @@ def build_eda_dashboard(
     # Panel: Mean POI Counts (right bottom)
     means = df.groupby(target_col, observed=True)[poi_count_cols].mean().reindex(order)
     short_names = [
-        c.replace("_count_within_3km", "").replace("_", " ").title()
-        for c in poi_count_cols
+        c.replace("_count_within_3km", "").replace("_", " ").title() for c in poi_count_cols
     ]
     means.columns = short_names
     means.T.plot(
@@ -1515,9 +1487,7 @@ def build_eda_dashboard(
         linewidth=0.9,
         width=0.75,
     )
-    ax_poi.set_title(
-        "Mean POI Counts\nWithin 3km by Tier", fontweight="bold", fontsize=32
-    )
+    ax_poi.set_title("Mean POI Counts\nWithin 3km by Tier", fontweight="bold", fontsize=32)
     ax_poi.set_xlabel("POI Type", fontsize=30)
     ax_poi.set_ylabel("Mean Count", fontsize=30)
     ax_poi.tick_params(axis="x", rotation=25, labelsize=26)
@@ -1528,8 +1498,7 @@ def build_eda_dashboard(
     # increase top margin so title does not overlap
     fig.subplots_adjust(top=0.88)
     fig.suptitle(
-        "Real Estate Price Prediction - EDA Dashboard\n"
-        "Team 10 | CMP 2026 | Data Science Project",
+        "Real Estate Price Prediction - EDA Dashboard\nTeam 10 | CMP 2026 | Data Science Project",
         fontsize=36,
         fontweight="bold",
         y=0.98,
@@ -1565,8 +1534,7 @@ def run_eda() -> None:
     print("\n[3] Univariate Analysis: Box and Violin Plots...")
     plot_box_violin_grid(
         df,
-        columns=CONTINUOUS_FEATURES
-        + ["dist_nearest_school_km", "dist_nearest_transit_station_km"],
+        columns=CONTINUOUS_FEATURES + ["dist_nearest_school_km", "dist_nearest_transit_station_km"],
         save_path=FIGURES_PATH / "02_violin_box_numeric.png",
     )
 
@@ -1587,9 +1555,7 @@ def run_eda() -> None:
     )
 
     print("\n[6] Univariate Analysis: Summary Statistics...")
-    summary_table = compute_univariate_summary(
-        df, CONTINUOUS_FEATURES + POI_DISTANCE_COLS
-    )
+    summary_table = compute_univariate_summary(df, CONTINUOUS_FEATURES + POI_DISTANCE_COLS)
     print("Univariate Summary — Numeric Features:")
     print(summary_table)
 
@@ -1748,21 +1714,15 @@ def run_eda() -> None:
 
     # === FEATURE RANKING ===
     print("\n[21] Feature Importance: Ranking by Target Correlation...")
-    feature_ranking = rank_features_by_target_correlation(
-        df, ALL_NUMERIC, TARGET_COL, TARGET_ORDER
-    )
+    feature_ranking = rank_features_by_target_correlation(df, ALL_NUMERIC, TARGET_COL, TARGET_ORDER)
 
     # Plot feature importance
     fig, ax = plt.subplots(figsize=(10, 8))
     colors = ["#E84C4C" if r else "#4C9BE8" for r in feature_ranking["significant"]]
     ax.barh(feature_ranking["feature"], feature_ranking["abs_r"], color=colors)
     ax.set_xlabel("|Spearman r| with price_category")
-    ax.set_title(
-        "Feature Importance Proxy — Spearman Correlation with Target", fontweight="bold"
-    )
-    ax.axvline(
-        0.1, color="gray", linestyle="--", linewidth=1, label="weak threshold (0.1)"
-    )
+    ax.set_title("Feature Importance Proxy — Spearman Correlation with Target", fontweight="bold")
+    ax.axvline(0.1, color="gray", linestyle="--", linewidth=1, label="weak threshold (0.1)")
     ax.legend()
     plt.tight_layout()
     plt.savefig(FIGURES_PATH / "22_feature_importance_proxy.png", bbox_inches="tight")
