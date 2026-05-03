@@ -2,7 +2,7 @@
 
 ## Team Members
 
-- Mariam Amin 
+- Mariam Amin
 - Karim Mahmoud
 - Khalid ElGammal
 - Ahmed Mostafa Bakr
@@ -47,16 +47,24 @@ The Kaggle and Bayut datasets are row-appended. OpenStreetMap features are merge
 │   ├── cleaned/              # Output of the cleaning pipeline
 │   └── processed/            # Train / validation / test splits
 ├── src/
+│   ├── Acquisition/
+│   │   └── Acquisition.py            # Data acquisition from source
 │   ├── data/
-│   │   └── data_cleaning.py  # Full cleaning pipeline
-│   └── features/
-│       └── feature_transformation.py  # Scaling, encoding, engineering, selection
-│   └── models/
-│       └── train.py          # Model training and MLflow logging
+│   │   └── data_cleaning.py          # Full cleaning pipeline
+│   ├── features/
+│   │   └── feature_transformation.py # Scaling, encoding, engineering, selection
+│   ├── models/
+│   │   ├── train.py                  # Model training and MLflow logging
+│   │   └── test.py                   # Inference on test split
+│   ├── validation/
+│   │   └── validation.py             # Pre- and post-cleaning data quality checks
+│   └── visualization/
+│       └── visualization.py          # Exploratory plots
 ├── models/                   # Saved model artifacts
 ├── reports/
-│   └── results/              # Cleaning and transformation logs
-├── tests/                    # tests
+│   ├── figures/              # Generated visualisations
+│   └── results/              # Cleaning, transformation, and validation logs
+├── tests/                    # Unit tests
 ├── Makefile                  # Pipeline automation
 └── pyproject.toml            # Poetry dependency definition
 ```
@@ -67,71 +75,55 @@ The Kaggle and Bayut datasets are row-appended. OpenStreetMap features are merge
 
 This project uses **Poetry** and **Python 3.11+**. All pipeline steps are automated via `make`.
 
-### 1. Environment setup
+### 1. Environment Setup
 
 ```bash
 make setup
 ```
 
-### 2. Data cleaning
-
-Expects raw data at `data/raw/data.csv`.
+### 2. Run the Full Pipeline
 
 ```bash
-make data
+make all
 ```
 
-### 3. Feature transformation
+This single command executes the complete pipeline in order — acquisition → cleaning → features → training → validation → visualisation. Each step is only rebuilt if its input files have changed or are missing.
 
-Produces train, validation, and test splits under `data/processed/`.
+### 3. Run Individual Steps
+
+To run a specific stage in isolation:
 
 ```bash
-make features
+make acquisition      # Fetch raw data → data/raw/data.csv
+make validate_before  # Validate raw data quality → reports/results/data_quality_report_before.csv
+make data             # Clean raw data → data/cleaned/cleaned_data.csv
+make validate_after   # Validate cleaned data quality → reports/results/data_quality_report_after.csv
+make visualize        # Generate exploratory plots → reports/figures/
+make features         # Produce train / validation / test splits → data/processed/
+make train            # Train models and save the best → models/best_model_latest.pkl
+make predict          # Run inference on the test split → reports/results/
 ```
 
-### 4. Train
-
-Trains all candidate models, logs experiments to MLflow, and saves the best model.
-
-```bash
-make train
-```
-
-Running `make` alone (no target) executes the full pipeline from cleaning through training, rebuilding only steps whose inputs have changed.
-
-### 5. Code quality
+### 4. Code Quality
 
 ```bash
 make format   # Dry-run formatting check (ruff)
 make lint     # Static analysis (ruff)
 ```
 
-### 6. Tests
+### 5. Tests
 
 ```bash
 make test
 ```
 
-### 7. Clean
+### 6. Clean
 
-Removes all generated files (cleaned data, processed splits, model artifacts, log reports).
+Removes all generated files (cleaned data, processed splits, model artifacts, log reports, and figures).
 
 ```bash
 make clean
 ```
-
----
-
-## Pipeline Overview
-
-```
-Raw CSV
-  └─► make data      → data/cleaned/cleaned_data.csv
-        └─► make features  → data/processed/{train,validation,test}.csv
-              └─► make train    → models/best_model_latest.pkl
-```
-
-The cleaning pipeline covers relevance filtering, accuracy quarantine, consistency normalisation, type coercion, missing value handling, deduplication, and outlier treatment. The transformation pipeline covers feature scaling, encoding, engineering, and selection (variance threshold → correlation filter → multicollinearity removal → RFECV).
 
 ---
 
