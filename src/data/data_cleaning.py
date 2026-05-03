@@ -694,7 +694,9 @@ if __name__ == "__main__":
     cleaning_pipeline.add_step(fix_missingness)
     cleaning_pipeline.add_step(drop_duplicates)
     cleaning_pipeline.add_step(
-        handle_outliers_with_clipping, clipping_columns=CLIPPING_COLUMNS, log_columns=LOG_COLUMNS
+        handle_outliers_with_clipping,
+        clipping_columns=CLIPPING_COLUMNS,
+        log_columns=LOG_COLUMNS,
     )
 
     clean_df = cleaning_pipeline.fit_transform(df)

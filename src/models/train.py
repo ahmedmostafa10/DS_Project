@@ -10,7 +10,12 @@ import pandas as pd
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, f1_score
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+)
 from sklearn.model_selection import GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
@@ -90,7 +95,11 @@ class ModelTrainer:
 
             with mlflow.start_run(run_name=run_name):
                 grid = GridSearchCV(
-                    estimator=model, param_grid=params, cv=3, scoring="f1_macro", n_jobs=-1
+                    estimator=model,
+                    param_grid=params,
+                    cv=3,
+                    scoring="f1_macro",
+                    n_jobs=-1,
                 )
 
                 grid.fit(self.X_train, self.y_train)

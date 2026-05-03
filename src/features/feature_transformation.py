@@ -397,7 +397,8 @@ class FeatureTransformation:
         corr_matrix = df_corr.corr()
 
         correlated_features = self.find_correlated_features(
-            corr_matrix, threshold=config["feature_selection"]["multicollinearity_threshold"]
+            corr_matrix,
+            threshold=config["feature_selection"]["multicollinearity_threshold"],
         )
 
         features_to_remove = set()

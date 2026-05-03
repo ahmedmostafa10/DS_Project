@@ -156,8 +156,22 @@ def test_fix_consistency():
             "is_premium": [0, 1, 0, 1, 0, 1],
             "is_featured": [1, 0, 1, 0, 1, 0],
             "is_exclusive": [True, False, True, False, True, False],
-            "amenities": ["Pool, Gym", "Parking", "Pool", "Gym", "Parking, Pool", "Gym, Parking"],
-            "listing_level": ["standard", "featured", "premium", "hot", "superhot", "standard"],
+            "amenities": [
+                "Pool, Gym",
+                "Parking",
+                "Pool",
+                "Gym",
+                "Parking, Pool",
+                "Gym, Parking",
+            ],
+            "listing_level": [
+                "standard",
+                "featured",
+                "premium",
+                "hot",
+                "superhot",
+                "standard",
+            ],
             "city": ["Cairo", "Giza", "Alex", "Cairo", "Giza", "Alex"],
         }
     )
@@ -225,7 +239,11 @@ def test_high_missingness_removal():
 
 def test_fill_district_with_mode():
     df = pd.DataFrame(
-        {"city": ["A", "A", "A"], "town": ["T1", "T1", "T1"], "district": ["D1", np.nan, "D1"]}
+        {
+            "city": ["A", "A", "A"],
+            "town": ["T1", "T1", "T1"],
+            "district": ["D1", np.nan, "D1"],
+        }
     )
 
     df["district"] = df["district"].astype("category")
