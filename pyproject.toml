@@ -1,0 +1,51 @@
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "house_price_prediction"
+version = "0.0.0"
+description = "House price prediction pipeline"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+# ─── Pytest ───────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+pythonpath = [".", "src"]
+testpaths  = ["tests"]
+addopts    = "-v"
+
+# TODO: add new test folders here if you split tests by stage
+# e.g. testpaths = ["tests/cleaning", "tests/features", "tests/training"]
+
+
+# ─── Ruff (linting & formatting) ──────────────────────────────────────────────
+# ─── Ruff (linting & formatting) ──────────────────────────────────────────────
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]  
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]   
+
+# TODO: add new script folders to include when you add stages
+# e.g. include = ["scripts/", "src/"]
+
+
+# ─── Coverage ─────────────────────────────────────────────────────────────────
+[tool.coverage.run]
+source = ["src"]
+omit   = ["tests/*", "**/__init__.py"]
+
+# TODO: add new source folders here as you add stages
+# e.g. source = ["scripts", "src/training", "src/evaluation"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty   = true

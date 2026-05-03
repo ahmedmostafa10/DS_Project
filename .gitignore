@@ -1,2 +1,14 @@
 ﻿*.csv
 *.pbf
+*.env
+settings.json
+*.log
+*.egg-info
+*.db
+*.txt
+*.pkl
+/mlruns
+*/mlruns
+*.png
+*__pycache__/
+/tempvenv
