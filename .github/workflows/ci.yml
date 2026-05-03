@@ -30,10 +30,10 @@ jobs:
         pip install -e .
 
     - name: Format check 
-      run: ruff format --check src/
+      run: make format
 
     - name: Lint check 
-      run: ruff check src/
+      run: make lint
 
     - name: Run tests
       run: pytest tests/ -v
