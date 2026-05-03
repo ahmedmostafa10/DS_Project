@@ -11,3 +11,4 @@ settings.json
 */mlruns
 *.png
 *__pycache__/
+/tempvenv
