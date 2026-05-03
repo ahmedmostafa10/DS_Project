@@ -1,46 +1,46 @@
-PYTHON := PYTHONPATH=. python  
+PYTHON := poetry run python
+POETRY := poetry run
 
-.PHONY: all data feature train test clean
-
+.PHONY: all setup data features train format lint test clean
 
 all: train
 
-# clean
+setup:
+	pip install poetry poetry-plugin-shell
+	rm -f poetry.lock
+	poetry lock
+	poetry install
+
+# Data cleaning
 data: data/cleaned/cleaned_data.csv
 
 data/cleaned/cleaned_data.csv: data/raw/data.csv
 	$(PYTHON) src/data/data_cleaning.py \
-		--input  data/raw/data.csv \
+		--input data/raw/data.csv \
 		--output data/cleaned/cleaned_data.csv
 
-# feature tarnsformation
+# Feature transformation
 features: data/processed/train.csv data/processed/validation.csv data/processed/test.csv
 
 data/processed/train.csv data/processed/validation.csv data/processed/test.csv: data/cleaned/cleaned_data.csv
 	$(PYTHON) src/features/feature_transformation.py
 
-
-# training
+# Training
 train: models/best_model_latest.pkl
 
-models/best_model_latest.pkl: data/processed/train.csv data/processed/validation.csv 
+models/best_model_latest.pkl: data/processed/train.csv data/processed/validation.csv
 	$(PYTHON) src/models/train.py
 
-#predict 
-
 format:
-	ruff format --diff  tests/ 
-	ruff format --diff src/ 
+	$(POETRY) ruff format --diff tests/
+	$(POETRY) ruff format --diff src/
 
 lint:
-	ruff check  tests/
-	ruff check  src/
+	$(POETRY) ruff check tests/
+	$(POETRY) ruff check src/
 
 test:
-	pytest tests/ -v
-
-
-
+	$(POETRY) pytest tests/ -v
 
 clean:
 	rm -f data/cleaned/cleaned_data.csv
