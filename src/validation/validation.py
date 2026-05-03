@@ -322,30 +322,9 @@ class DataValidationPipeline:
         self.logger.info("--- Uniqueness Analysis ---")
         uniq_details = []
 
-        dup_subset = [
-            "title",
-            "price_egp",
-            "location_full",
-            "bedrooms",
-            "bathroom",
-            "area_value",
-            "lat",
-            "lon",
-        ]
-        valid_subset = [col for col in dup_subset if col in df.columns]
-
-        if valid_subset:
-            duplicates_count = df.duplicated(subset=valid_subset).sum()
-            self.logger.info(
-                f"Duplicate property rows (ignoring broker/agency differences) based on {valid_subset}: {duplicates_count}"
-            )
-            uniq_details.append(
-                f"Sub-level duplicates: {duplicates_count} (subset: {valid_subset})"
-            )
-        else:
-            duplicates_count = df.duplicated().sum()
-            self.logger.info(f"Exact duplicate rows: {duplicates_count}")
-            uniq_details.append(f"Exact duplicates: {duplicates_count}")
+        duplicates_count = df.duplicated().sum()
+        self.logger.info(f"Exact duplicate rows: {duplicates_count}")
+        uniq_details.append(f"Exact duplicates: {duplicates_count}")
 
         for col in categorical_cols:
             if col in df.columns:

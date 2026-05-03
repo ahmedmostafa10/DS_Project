@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import pytest
 
-from Acquisition.Acquisition import DataCollectionPipeline
+from src.Acquisition.Acquisition import DataCollectionPipeline
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ class TestDataCollectionPipeline:
 
     @pytest.mark.unit
     @pytest.mark.acquisition
-    @patch("Acquisition.Acquisition.requests.Session.get")
+    @patch("src.Acquisition.Acquisition.requests.Session.get")
     def test_collect_from_web_with_mocked_request(self, mock_get):
         """Test web collection with mocked HTTP request."""
         # pipeline = DataCollectionPipeline()
