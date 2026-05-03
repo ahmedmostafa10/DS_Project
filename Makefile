@@ -28,10 +28,18 @@ models/best_model_latest.pkl: data/processed/train.csv data/processed/validation
 
 #predict 
 
+format:
+	ruff format --diff  tests/ 
+	ruff format --diff src/ 
 
+lint:
+	ruff check  tests/
+	ruff check  src/
 
 test:
 	pytest tests/ -v
+
+
 
 
 clean:
