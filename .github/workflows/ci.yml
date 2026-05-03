@@ -1,8 +1,5 @@
 name: CI Pipeline
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 on:
   push:
     branches: [main]
@@ -15,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: starting ci pipeline message
+      run: echo "Running CI pipeline for Python project"
+
     - name: Checkout code
       uses: actions/checkout@v3
 
