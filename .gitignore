@@ -13,3 +13,4 @@ settings.json
 *__pycache__/
 /tempvenv
 poetry.lock
+.coverage

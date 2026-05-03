@@ -17,6 +17,7 @@ from sklearn.metrics import (
     f1_score,
 )
 from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 from xgboost import XGBClassifier
 
@@ -35,6 +36,9 @@ MODELS_DIR = config["paths"]["models_dir"]
 TRAIN_PATH = config["paths"]["train_path"]
 VALIDATION_PATH = config["paths"]["validation_path"]
 TEST_PATH = config["paths"]["test_path"]
+FIGURES_DIR = config["paths"]["figures_dir"]
+
+os.makedirs(FIGURES_DIR, exist_ok=True)
 
 
 class Evaluator:
@@ -52,18 +56,22 @@ class Evaluator:
         plt.ylabel("Actual")
         plt.savefig(filename)
         plt.close()
+        return filename
 
 
 class ModelTrainer:
-    def __init__(self, train_path, val_path, experiment_name, model_dir=MODELS_DIR):
+    def __init__(self, train_path, val_path, test_path, experiment_name, model_dir=MODELS_DIR):
         # data loading
         train_data = pd.read_csv(train_path)
         val_data = pd.read_csv(val_path)
+        test_data = pd.read_csv(test_path)
 
         self.X_train = train_data.drop(columns=["target"])
         self.y_train = train_data["target"]
         self.X_val = val_data.drop(columns=["target"])
         self.y_val = val_data["target"]
+        self.X_test = test_data.drop(columns=["target"])
+        self.y_test = test_data["target"]
 
         # evaluator
         self.evaluator = Evaluator()
@@ -79,7 +87,7 @@ class ModelTrainer:
             "decision_tree": DecisionTreeClassifier(random_state=42),
             "random_forest": RandomForestClassifier(random_state=42, n_jobs=-1),
             "xgboost": XGBClassifier(random_state=42, n_jobs=-1, eval_metric="logloss"),
-            # "svc": SVC(),
+            "svc": SVC(),
         }
 
         # setup mlflow
@@ -128,8 +136,15 @@ class ModelTrainer:
                 mlflow.log_text(train_rep, "train_report.txt")
                 mlflow.log_text(val_rep, "val_report.txt")
 
-                self.evaluator.save_confusion_matrix(train_cm, TRAIN_CONFUSION_MATRIX_PATH)
-                self.evaluator.save_confusion_matrix(val_cm, VALIDATION_CONFUSION_MATRIX_PATH)
+                train_cm_path = self.evaluator.save_confusion_matrix(
+                    train_cm, TRAIN_CONFUSION_MATRIX_PATH
+                )
+                val_cm_path = self.evaluator.save_confusion_matrix(
+                    val_cm, VALIDATION_CONFUSION_MATRIX_PATH
+                )
+
+                mlflow.log_artifact(train_cm_path, artifact_path="train_confusion_matrix")
+                mlflow.log_artifact(val_cm_path, artifact_path="val_confusion_matrix")
 
                 mlflow.sklearn.log_model(best_model, name)
 
@@ -164,6 +179,23 @@ class ModelTrainer:
         joblib.dump(self.best_model, latest_path)
         joblib.dump(self.best_model, version_path)
 
+        test_pred = self.best_model.predict(self.X_test)
+        test_acc, test_f1, test_rep, test_cm = self.evaluator.evaluate(self.y_test, test_pred)
+
+        # save test confusion matrix
+        test_cm_path = self.evaluator.save_confusion_matrix(test_cm, TEST_CONFUSION_MATRIX_PATH)
+
+        with mlflow.start_run(run_name=f"test_model_version_{version}_{self.best_name}"):
+            mlflow.log_metrics(
+                {
+                    "test_acc": test_acc,
+                    "test_macro_f1": test_f1,
+                }
+            )
+            mlflow.log_artifact(test_cm_path, artifact_path="test_confusion_matrix")
+            mlflow.log_text(test_rep, "test_report.txt")
+            mlflow.sklearn.log_model(self.best_model, "test_model")
+
         print("\nSaved best model:")
         print("Model:", self.best_name)
         print("Score:", self.best_score)
@@ -175,6 +207,7 @@ if __name__ == "__main__":
     trainer = ModelTrainer(
         train_path=TRAIN_PATH,
         val_path=VALIDATION_PATH,
+        test_path=TEST_PATH,
         experiment_name=EXPERIMENT_NAME,
         model_dir=MODELS_DIR,
     )
