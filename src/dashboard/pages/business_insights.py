@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 import numpy as np
-import pandas as pd
 import seaborn as sns
 import streamlit as st
-
 
 CATEGORY_PALETTE = {
     "Low": "#4C9BE8",
@@ -27,7 +24,9 @@ def make_boundary_confusion_figure() -> plt.Figure:
     medium_dist = 0.9 * np.exp(-((price_points - 50) ** 2) / 150)
     high_dist = 0.8 * np.exp(-((price_points - 75) ** 2) / 150)
 
-    ax.fill_between(price_points, 0, low_dist, alpha=0.5, label="Low", color=CATEGORY_PALETTE["Low"])
+    ax.fill_between(
+        price_points, 0, low_dist, alpha=0.5, label="Low", color=CATEGORY_PALETTE["Low"]
+    )
     ax.fill_between(
         price_points, 0, medium_dist, alpha=0.5, label="Medium", color=CATEGORY_PALETTE["Medium"]
     )
@@ -43,7 +42,9 @@ def make_boundary_confusion_figure() -> plt.Figure:
 
     ax.set_xlabel("Price Percentile")
     ax.set_ylabel("Density")
-    ax.set_title("Why Boundaries Are Confused (Quantile Split Guarantee Overlap)", fontweight="bold")
+    ax.set_title(
+        "Why Boundaries Are Confused (Quantile Split Guarantee Overlap)", fontweight="bold"
+    )
     ax.legend(loc="upper right")
     ax.set_xlim([0, 100])
     ax.set_ylim([0, 1.0])
@@ -57,7 +58,12 @@ def make_right_vs_wrong_figure() -> plt.Figure:
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5.5))
 
     # Left: What the model gets right
-    right_categories = ["Low\nextreme", "High\nextreme", "Geography\ngradient", "Furnished\n+ complete"]
+    right_categories = [
+        "Low\nextreme",
+        "High\nextreme",
+        "Geography\ngradient",
+        "Furnished\n+ complete",
+    ]
     right_scores = [0.78, 0.82, 0.85, 0.79]
     colors_right = [CATEGORY_PALETTE["Low"], CATEGORY_PALETTE["High"], "#2F80ED", "#1B998B"]
 
@@ -70,7 +76,12 @@ def make_right_vs_wrong_figure() -> plt.Figure:
         ax1.text(v + 0.01, i, f"{v:.0%}", va="center", fontweight="bold")
 
     # Right: What the model gets wrong
-    wrong_categories = ["Medium\ntier F1", "Low→Medium\nboundary", "Medium→High\nboundary", "Area-only\npredictions"]
+    wrong_categories = [
+        "Medium\ntier F1",
+        "Low→Medium\nboundary",
+        "Medium→High\nboundary",
+        "Area-only\npredictions",
+    ]
     wrong_scores = [0.61, 0.76, 0.67, 0.58]
     colors_wrong = [CATEGORY_PALETTE["Medium"], "#F7B731", "#E84C4C", "#95989A"]
 
@@ -195,5 +206,3 @@ def show() -> None:
         with st.expander(f"**{finding['title']}**"):
             st.markdown(f"**{finding['desc']}**")
             st.markdown(finding["detail"])
-
-

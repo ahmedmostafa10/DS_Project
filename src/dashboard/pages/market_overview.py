@@ -8,7 +8,6 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_PATH = PROJECT_ROOT / "data" / "cleaned" / "cleaned_data.csv"
 
@@ -49,9 +48,7 @@ def load_data() -> pd.DataFrame:
     df[TARGET_COL] = pd.Categorical(df[TARGET_COL], categories=TARGET_ORDER, ordered=True)
 
     furnished_raw = df["furnished"].fillna("Missing").astype(str).str.strip().str.lower()
-    df["furnished_label"] = furnished_raw.map(FURNISHED_LABELS).fillna(
-        furnished_raw.str.title()
-    )
+    df["furnished_label"] = furnished_raw.map(FURNISHED_LABELS).fillna(furnished_raw.str.title())
 
     return df
 
@@ -81,7 +78,7 @@ def make_price_distribution_figure(df: pd.DataFrame) -> plt.Figure:
     ax.set_title("Price Distribution", fontweight="bold")
     ax.set_xlabel("Price (EGP)")
     ax.set_ylabel("Count")
-    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x/1e6:.1f}M"))
+    ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x / 1e6:.1f}M"))
     ax.legend(frameon=False)
     fig.tight_layout()
     return fig
@@ -115,11 +112,15 @@ def make_city_price_heatmap_figure(df: pd.DataFrame, top_n: int = 12) -> plt.Fig
 
 
 def make_furnished_price_figure(df: pd.DataFrame) -> plt.Figure:
-    furnished_share = pd.crosstab(
-        df["furnished_label"],
-        df[TARGET_COL],
-        normalize="index",
-    ).reindex(index=FURNISHED_ORDER).reindex(columns=TARGET_ORDER)
+    furnished_share = (
+        pd.crosstab(
+            df["furnished_label"],
+            df[TARGET_COL],
+            normalize="index",
+        )
+        .reindex(index=FURNISHED_ORDER)
+        .reindex(columns=TARGET_ORDER)
+    )
 
     fig, ax = plt.subplots(figsize=(9, 4.8))
     furnished_share.plot(
@@ -216,7 +217,9 @@ def show() -> None:
 
     st.markdown("### Price distribution")
     st.pyplot(make_price_distribution_figure(df), use_container_width=True)
-    st.caption("The long right tail confirms that a small set of luxury listings pulls prices upward.")
+    st.caption(
+        "The long right tail confirms that a small set of luxury listings pulls prices upward."
+    )
 
     left, right = st.columns(2)
     with left:

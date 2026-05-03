@@ -4,7 +4,6 @@ import streamlit as st
 
 from .pages import business_insights, market_overview, model_performance
 
-
 st.set_page_config(page_title="Egypt Apartments", page_icon="🏠", layout="wide")
 
 st.markdown(

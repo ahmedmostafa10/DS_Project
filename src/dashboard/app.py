@@ -5,14 +5,14 @@ from pathlib import Path
 
 import streamlit as st
 
+from src.dashboard.pages import business_insights, market_overview, model_performance
+
 # Ensure project root is on sys.path so absolute imports like `from src...` work
 # when Streamlit runs the script via the CLI (e.g. `poetry run streamlit run ...`).
 # app.py is at `src/dashboard/app.py` so parents[2] is the project root.
 project_root = Path(__file__).resolve().parents[2]
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
-
-from src.dashboard.pages import business_insights, market_overview, model_performance
 
 
 st.set_page_config(page_title="Egypt Apartments", page_icon="🏠", layout="wide")

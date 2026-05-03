@@ -60,7 +60,8 @@ omit = [
     "tests/*",
     "**/__init__.py",
     "src/models/*",
-    "src/visualization/*"
+    "src/visualization/*",
+    "src/dashboard/*"
 ]
 
 # TODO: add new source folders here as you add stages

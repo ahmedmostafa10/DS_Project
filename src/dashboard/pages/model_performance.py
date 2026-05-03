@@ -6,7 +6,6 @@ import pandas as pd
 import seaborn as sns
 import streamlit as st
 
-
 MODEL_DATA = {
     "Logistic Regression": {
         "train_acc": 0.52,
@@ -127,9 +126,7 @@ def make_f1_by_tier_figure() -> plt.Figure:
 
     for model_name, metrics in MODEL_DATA.items():
         model_names.append(model_name)
-        f1_data.append(
-            [metrics["f1_low"], metrics["f1_medium"], metrics["f1_high"]]
-        )
+        f1_data.append([metrics["f1_low"], metrics["f1_medium"], metrics["f1_high"]])
 
     f1_df = pd.DataFrame(f1_data, index=model_names, columns=["Low", "Medium", "High"])
 
@@ -156,13 +153,7 @@ def make_f1_by_tier_figure() -> plt.Figure:
 
 def show() -> None:
     st.title("Model Performance")
-    st.caption(
-        "Comparison of five classification models trained to predict apartment price tier."
-    )
-
-    best_model = "XGBoost"
-    best_acc = MODEL_DATA[best_model]["test_acc"]
-    avg_macro_f1 = np.mean([m['macro_f1'] for m in MODEL_DATA.values()])
+    st.caption("Comparison of five classification models trained to predict apartment price tier.")
 
     metrics = st.columns(4)
     metrics[0].metric("Best Model", "XGBoost", "73% test acc")
@@ -179,14 +170,14 @@ def show() -> None:
     )
 
     st.markdown("### Test Accuracy Comparison")
-    st.pyplot(make_accuracy_comparison_figure(), width='stretch')
+    st.pyplot(make_accuracy_comparison_figure(), width="stretch")
     st.info(
         "XGBoost (73%) outperforms all other models. Decision Tree and Random Forest suffer from significant overfitting "
         "(88%→67% and 94%→70% respectively). Logistic Regression and SVC underfit (42-52% train/test)."
     )
 
     st.markdown("### F1 Scores by Price Tier")
-    st.pyplot(make_f1_by_tier_figure(), width='stretch')
+    st.pyplot(make_f1_by_tier_figure(), width="stretch")
     st.warning(
         "**Medium tier is the hardest to predict:** F1 ranges from 0.08 (SVC) to 0.64 (XGBoost). "
         "This class sits at the boundary between Low and High, causing systematic confusion. "
@@ -206,13 +197,15 @@ def show() -> None:
         )
 
     st.markdown("### XGBoost Test Classification Report")
-    xgb_results = pd.DataFrame({
-        "Price Tier": ["Low (Class 0)", "Medium (Class 1)", "High (Class 2)", "Macro Average"],
-        "Precision": [0.79, 0.63, 0.78, 0.73],
-        "Recall": [0.75, 0.66, 0.78, 0.73],
-        "F1-Score": [0.77, 0.64, 0.78, 0.73],
-        "Support": [773, 774, 773, 2320],
-    })
+    xgb_results = pd.DataFrame(
+        {
+            "Price Tier": ["Low (Class 0)", "Medium (Class 1)", "High (Class 2)", "Macro Average"],
+            "Precision": [0.79, 0.63, 0.78, 0.73],
+            "Recall": [0.75, 0.66, 0.78, 0.73],
+            "F1-Score": [0.77, 0.64, 0.78, 0.73],
+            "Support": [773, 774, 773, 2320],
+        }
+    )
     st.dataframe(xgb_results, use_container_width=True)
     st.success(
         "XGBoost achieved 73% test accuracy and 0.73 Macro F1. Training accuracy was 85%, "
