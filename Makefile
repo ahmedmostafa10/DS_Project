@@ -19,6 +19,10 @@ data/cleaned/cleaned_data.csv: data/raw/data.csv
 		--input data/raw/data.csv \
 		--output data/cleaned/cleaned_data.csv
 
+visualize: 
+	$(PYTHON) src/visualization/visualization.py \
+		--input data/cleaned/cleaned_data.csv \
+
 # Feature transformation
 features: data/processed/train.csv data/processed/validation.csv data/processed/test.csv
 
@@ -41,6 +45,7 @@ lint:
 
 test:
 	$(POETRY) pytest tests/ -v
+	$(POETRY) pytest --cov=src 
 
 clean:
 	rm -f data/cleaned/cleaned_data.csv
