@@ -18,28 +18,33 @@ import math
 from pydantic import BaseModel, ValidationError, Field, field_validator
 from typing import Optional
 
-from Acquisition.Acquisition import DataCollectionPipeline, DataMergerPipeline,POIHandler,OSMFeatureExtractorPipeline
+from Acquisition.Acquisition import (
+    DataCollectionPipeline,
+    DataMergerPipeline,
+    POIHandler,
+    OSMFeatureExtractorPipeline,
+)
 from validation.validation import PropertyRowSchema, DataValidationPipeline
 
 if __name__ == "__main__":
     # pipeline = DataCollectionPipeline()
-    
+
     # print("\n--- Starting Web Scraper (Bayut) ---")
     # # Quick sample: Limited to 1 page
     # pipeline.collect_from_web("https://www.bayut.eg/en/egypt/properties-for-sale/", max_pages=1)
-    
+
     # print("\n--- Starting Kaggle Collection ---")
     # pipeline.collect_from_kaggle("waddahali/real-estate-listings", output_fileName="kaggle_data.csv")
-    
+
     # print("\n--- Generating Stats ---")
     # stats = pipeline.get_collection_stats()
     # print("Collection Stats:")
     # print(stats)
-    
+
     # print("\n--- Exporting DB Scraped Data ---")
     # # Exporting all scraped DB tables directly into the root folder to generate scraped_data.csv
-    # pipeline.export_all_data(output_dir=".") 
-    
+    # pipeline.export_all_data(output_dir=".")
+
     # pipeline.close()
 
     # print("\n--- Merging Datasets ---")
@@ -57,6 +62,5 @@ if __name__ == "__main__":
     print("\n--- Running Data Validation ---")
     validator = DataValidationPipeline()
     validator.run_validation(
-        input_csv='OSM/last.csv',
-        output_report_csv='data_quality_report.csv'
+        input_csv="OSM/last.csv", output_report_csv="data_quality_report.csv"
     )

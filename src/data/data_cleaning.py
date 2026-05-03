@@ -191,11 +191,19 @@ def accuracy_qurantine_based_fixing(df, quarantine_log_path=QUARANTINE_LOG_PATH)
     df_quarantined["rejection_reason"] = df[rejection_mask].apply(
         lambda row: "; ".join(
             [
-                f"area_value > {MAX_VALID_AREA}" if row["area_value"] > MAX_VALID_AREA else "",
-                f"price_egp > {MAX_VALID_PRICE}" if row["price_egp"] > MAX_VALID_PRICE else "",
-                "invalid_lon" if (row["lon"] < MIN_VALID_LON or row["lon"] > MAX_VALID_LON) else "",
-                "invalid_lat" if (row["lat"] < MIN_VALID_LAT or row["lat"] > MAX_VALID_LAT) else "",
-                f"area_value < {MIN_VALID_AREA}" if row["area_value"] < MIN_VALID_AREA else "",
+                (f"area_value > {MAX_VALID_AREA}" if row["area_value"] > MAX_VALID_AREA else ""),
+                (f"price_egp > {MAX_VALID_PRICE}" if row["price_egp"] > MAX_VALID_PRICE else ""),
+                (
+                    "invalid_lon"
+                    if (row["lon"] < MIN_VALID_LON or row["lon"] > MAX_VALID_LON)
+                    else ""
+                ),
+                (
+                    "invalid_lat"
+                    if (row["lat"] < MIN_VALID_LAT or row["lat"] > MAX_VALID_LAT)
+                    else ""
+                ),
+                (f"area_value < {MIN_VALID_AREA}" if row["area_value"] < MIN_VALID_AREA else ""),
                 "invalid_bedrooms" if row["bedrooms"] < MIN_VALID_BEDROOMS else "",
             ]
         ).strip("; "),
@@ -694,7 +702,9 @@ if __name__ == "__main__":
     cleaning_pipeline.add_step(fix_missingness)
     cleaning_pipeline.add_step(drop_duplicates)
     cleaning_pipeline.add_step(
-        handle_outliers_with_clipping, clipping_columns=CLIPPING_COLUMNS, log_columns=LOG_COLUMNS
+        handle_outliers_with_clipping,
+        clipping_columns=CLIPPING_COLUMNS,
+        log_columns=LOG_COLUMNS,
     )
 
     clean_df = cleaning_pipeline.fit_transform(df)
