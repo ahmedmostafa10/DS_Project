@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 from typing import Optional
@@ -409,7 +410,7 @@ class DataValidationPipeline:
                 dist_path = os.path.join(plots_out_dir, "numeric_distribution_profiles.png")
                 plt.savefig(dist_path)
                 plt.close(fig)
-                self.logger.info(f"📊 Numeric distribution profiles saved to {dist_path}")
+                self.logger.info(f"Numeric distribution profiles saved to {dist_path}")
 
             # 2. Categorical Bar Chart (Class Distribution)
             if len(categorical_cols) > 0:
@@ -427,7 +428,7 @@ class DataValidationPipeline:
                 bar_path = os.path.join(plots_out_dir, f"class_distribution_{target_cat}.png")
                 plt.savefig(bar_path)
                 plt.close()
-                self.logger.info(f"📊 Class distribution bar chart saved to {bar_path}")
+                self.logger.info(f"Class distribution bar chart saved to {bar_path}")
 
             # 3. Spearman Correlation Heatmap
             if len(numeric_cols) > 1:
@@ -439,7 +440,7 @@ class DataValidationPipeline:
                 heatmap_path = os.path.join(plots_out_dir, "correlation_heatmap_spearman.png")
                 plt.savefig(heatmap_path)
                 plt.close()
-                self.logger.info(f"📊 Correlation heatmap saved to {heatmap_path}")
+                self.logger.info(f"Correlation heatmap saved to {heatmap_path}")
 
         except ImportError:
             self.logger.warning("matplotlib or seaborn not installed. Skipping chart generation.")
@@ -472,4 +473,23 @@ class DataValidationPipeline:
             columns=["Dimension", "Findings / Summary"],
         )
         report_df.to_csv(output_report_csv, index=False)
-        self.logger.info(f"✅ Data Quality Report exported to {output_report_csv}")
+        self.logger.info(f"Data Quality Report exported to {output_report_csv}")
+
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--input", required=True, help="Input CSV path")
+    parser.add_argument("--output", required=True, help="Output report CSV path")
+
+    args = parser.parse_args()
+
+    validator = DataValidationPipeline()
+    validator.run_validation(
+        input_csv=args.input,
+        output_report_csv=args.output,
+    )
+
+
+if __name__ == "__main__":
+    main()

@@ -622,4 +622,47 @@ class OSMFeatureExtractorPipeline:
         print(f"\\nSaving final enriched dataset to {output_csv}...")
         os.makedirs(os.path.dirname(output_csv) or ".", exist_ok=True)
         df_props.to_csv(output_csv, index=False, encoding="utf-8")
-        print("✅ OSM Feature Extraction Complete!")
+        print("OSM Feature Extraction Complete!")
+
+
+if __name__ == "__main__":
+    print("\n--- Running Data Collection Pipeline ---")
+
+    pipeline = DataCollectionPipeline()
+
+    print("\n--- Starting Web Scraper (Bayut) ---")
+    # Quick sample: Limited to 1 page
+    pipeline.collect_from_web("https://www.bayut.eg/en/egypt/properties-for-sale/", max_pages=1)
+
+    print("\n--- Starting Kaggle Collection ---")
+    pipeline.collect_from_kaggle(
+        "waddahali/real-estate-listings", output_fileName="kaggle_data.csv"
+    )
+
+    print("\n--- Generating Stats ---")
+    stats = pipeline.get_collection_stats()
+    print("Collection Stats:")
+    print(stats)
+
+    print("\n--- Exporting DB Scraped Data ---")
+    # Exporting all scraped DB tables directly into the root folder to generate scraped_data.csv
+    pipeline.export_all_data(output_dir=".")
+
+    pipeline.close()
+
+    print("\n--- Merging Datasets ---")
+    merger = DataMergerPipeline()
+    # Merge the existing PropertyFinder data with the newly scraped Bayut data
+    merger.merge_datasets(
+        pf_file="data/propertyfinder.csv",
+        bayut_file="scraped_data.csv",
+        output_filename="all_properties_merged.csv",
+    )
+
+    print("\n--- Extracting OSM Features ---")
+    osm_extractor = OSMFeatureExtractorPipeline()
+    osm_extractor.extract_features(
+        input_csv="all_properties_merged.csv",
+        osm_pbf="OSM/egypt-latest.osm.pbf",
+        output_csv="./data/raw/data.csv",
+    )
