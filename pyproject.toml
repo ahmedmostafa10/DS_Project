@@ -1,28 +1,31 @@
-
 [build-system]
-requires = ["setuptools", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "house_price_prediction"
 version = "0.0.0"
 description = "House price prediction pipeline"
 
-[tool.setuptools.packages.find]
-where = ["."]
 
-# ─── Pytest ───────────────────────────────────────────────────────────────────
-[tool.pytest.ini_options]
-pythonpath = [".", "src"]
-testpaths  = ["tests"]
-addopts    = "-v"
+packages = [{ include = "src" }]
 
-# TODO: add new test folders here if you split tests by stage
-# e.g. testpaths = ["tests/cleaning", "tests/features", "tests/training"]
+[tool.poetry.dependencies]
+python = "^3.11"
+joblib = "*"
+matplotlib = "*"
+mlflow = "*"
+numpy = "*"
+pandas = "*"
+scikit-learn = "*"
+seaborn = "*"
+xgboost = "*"
+ruff = "*"
+pytest = "*"
+statsmodels = "^0.14.6"
+pytest-cov = "*"
 
 
-# ─── Ruff (linting & formatting) ──────────────────────────────────────────────
-# ─── Ruff (linting & formatting) ──────────────────────────────────────────────
 [tool.ruff]
 line-length = 100
 target-version = "py312"
@@ -41,7 +44,12 @@ known-first-party = ["src"]
 # ─── Coverage ─────────────────────────────────────────────────────────────────
 [tool.coverage.run]
 source = ["src"]
-omit   = ["tests/*", "**/__init__.py"]
+omit = [
+    "tests/*",
+    "**/__init__.py",
+    "src/models/*",
+    "src/visualization/*"
+]
 
 # TODO: add new source folders here as you add stages
 # e.g. source = ["scripts", "src/training", "src/evaluation"]
@@ -49,3 +57,5 @@ omit   = ["tests/*", "**/__init__.py"]
 [tool.coverage.report]
 show_missing = true
 skip_empty   = true
+
+

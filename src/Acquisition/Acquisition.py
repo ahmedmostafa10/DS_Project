@@ -1,21 +1,20 @@
+import json
+import logging
 import os
 import re
 import time
-import json
-import logging
-from datetime import datetime
 import urllib.parse
 import urllib.robotparser
+from datetime import datetime
 
-import requests
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-from bs4 import BeautifulSoup
-import pandas as pd
 import numpy as np
-
 import osmium
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter
 from sklearn.neighbors import BallTree
+from urllib3.util.retry import Retry
 
 
 class DataCollectionPipeline:
@@ -86,9 +85,7 @@ class DataCollectionPipeline:
                 return {}
             self.logger.info("robots.txt check passed. Proceeding with scraping...")
         except Exception as e:
-            self.logger.warning(
-                f"Could not read robots.txt, proceeding anyway. Error: {e}"
-            )
+            self.logger.warning(f"Could not read robots.txt, proceeding anyway. Error: {e}")
 
         current_page = 1
         total_pages = 1
@@ -96,9 +93,7 @@ class DataCollectionPipeline:
 
         while current_page <= total_pages:
             page_url = url if current_page == 1 else f"{url}page-{current_page}/"
-            self.logger.info(
-                f"Fetching {page_url}... (Page {current_page} of {total_pages})"
-            )
+            self.logger.info(f"Fetching {page_url}... (Page {current_page} of {total_pages})")
 
             try:
                 response = self.session.get(page_url, timeout=10)
@@ -120,13 +115,9 @@ class DataCollectionPipeline:
                     self._log_collection("web", 0, "error", "JSON block not found")
                     break
 
-                match = re.search(
-                    r"window\.state\s*=\s*({.*?});", script_text, re.DOTALL
-                )
+                match = re.search(r"window\.state\s*=\s*({.*?});", script_text, re.DOTALL)
                 if not match:
-                    self.logger.error(
-                        "Regex could not extract JSON from script_text on this page."
-                    )
+                    self.logger.error("Regex could not extract JSON from script_text on this page.")
                     self._log_collection("web", 0, "error", "Regex failed")
                     break
 
@@ -137,9 +128,7 @@ class DataCollectionPipeline:
 
                     if current_page == 1:
                         fetched_pages = (
-                            state.get("algolia", {})
-                            .get("content", {})
-                            .get("nbPages", 1)
+                            state.get("algolia", {}).get("content", {}).get("nbPages", 1)
                         )
                         total_pages = (
                             min(fetched_pages, max_pages)
@@ -150,9 +139,7 @@ class DataCollectionPipeline:
                             f"Discovered total pages: {fetched_pages}. Target set to scrape: {total_pages}"
                         )
 
-                    listings = (
-                        state.get("algolia", {}).get("content", {}).get("hits", [])
-                    )
+                    listings = state.get("algolia", {}).get("content", {}).get("hits", [])
                     if not listings:
                         self.logger.warning("No listings found on this page. Stopping.")
                         break
@@ -172,9 +159,7 @@ class DataCollectionPipeline:
                             # Location mapping based on level
                             locations = listing.get("location", [])
                             loc_full = ", ".join(
-                                loc.get("name", "")
-                                for loc in locations
-                                if loc.get("name", None)
+                                loc.get("name", "") for loc in locations if loc.get("name", None)
                             )
                             city = next(
                                 (
@@ -244,9 +229,9 @@ class DataCollectionPipeline:
                             listed_date = None
                             created_at = listing.get("createdAt", None)
                             if created_at:
-                                listed_date = datetime.fromtimestamp(
-                                    created_at
-                                ).strftime("%Y-%m-%d %H:%M:%S")
+                                listed_date = datetime.fromtimestamp(created_at).strftime(
+                                    "%Y-%m-%d %H:%M:%S"
+                                )
 
                             # Phones
                             phone_data = listing.get("phoneNumber", {})
@@ -266,9 +251,7 @@ class DataCollectionPipeline:
                                 "detail_url": detail_url,
                                 "property_type": listing_type,
                                 "offering_type": listing.get("purpose", None),
-                                "completion_status": listing.get(
-                                    "completionStatus", None
-                                ),
+                                "completion_status": listing.get("completionStatus", None),
                                 "title": listing.get("title", None),
                                 "price_egp": listing.get("price", None),
                                 "price_period": listing.get("rentFrequency", None),
@@ -289,13 +272,9 @@ class DataCollectionPipeline:
                                 "is_premium": listing.get("product", None) == "premium",
                                 "is_verified": listing.get("isVerified", False),
                                 "is_featured": listing.get("product", None) == "hot",
-                                "is_new_construction": listing.get(
-                                    "completionStatus", None
-                                )
+                                "is_new_construction": listing.get("completionStatus", None)
                                 == "off_plan",
-                                "is_direct_from_developer": extra_fields.get(
-                                    "ownership", None
-                                )
+                                "is_direct_from_developer": extra_fields.get("ownership", None)
                                 == "primary",
                                 "is_exclusive": None,
                                 "listed_date": listed_date,
@@ -310,9 +289,7 @@ class DataCollectionPipeline:
                                 "agent_id": owner_agent.get("externalID", None),
                                 "agent_name": owner_agent.get("name", None),
                                 "agent_email": None,
-                                "agent_is_verified": owner_agent.get(
-                                    "isTruBroker", False
-                                ),
+                                "agent_is_verified": owner_agent.get("isTruBroker", False),
                                 "agent_languages": None,
                                 "broker_id": agency.get("id", None),
                                 "broker_name": agency.get("name", None),
@@ -321,9 +298,7 @@ class DataCollectionPipeline:
                                 "contact_phone": contact_phone,
                                 "contact_whatsapp": contact_whatsapp,
                                 "contact_email": listing.get("hasEmail", False),
-                                "scraped_at": datetime.now().strftime(
-                                    "%Y-%m-%d %H:%M:%S"
-                                ),
+                                "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             }
 
                             title = listing.get("title", None)
@@ -332,9 +307,7 @@ class DataCollectionPipeline:
                                     "url": page_url,
                                     "title": title,
                                     "content": json.dumps(data_payload),
-                                    "scraped_at": datetime.now().strftime(
-                                        "%Y-%m-%d %H:%M:%S"
-                                    ),
+                                    "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                 }
                             )
 
@@ -342,9 +315,7 @@ class DataCollectionPipeline:
                             total_saved += 1
 
                         except Exception as entry_e:
-                            self.logger.error(
-                                f"Error parsing property {index}: {entry_e}"
-                            )
+                            self.logger.error(f"Error parsing property {index}: {entry_e}")
 
                     self._log_collection("web", records_inserted, "success")
 
@@ -369,42 +340,6 @@ class DataCollectionPipeline:
             time.sleep(0.2)
 
         return {"status": "Bayut scraper completed", "records_saved": total_saved}
-
-    def collect_from_kaggle(
-        self, dataset_identifier, output_fileName="kaggle_data.csv"
-    ):
-        self.logger.info(f"Kaggle collection started for {dataset_identifier}.")
-        try:
-            import kagglehub
-            import shutil
-
-            path = kagglehub.dataset_download(dataset_identifier)
-            csv_files = [f for f in os.listdir(path) if f.endswith(".csv")]
-            if not csv_files:
-                self._log_collection("kaggle", 0, "error", "No CSV files found")
-                return
-
-            total_records = 0
-            all_dfs = []
-            for csv_file in csv_files:
-                df = pd.read_csv(os.path.join(path, csv_file))
-                all_dfs.append(df)
-                total_records += len(df)
-
-            # Merge and save local copy of Kaggle dataset
-            if all_dfs:
-                final_df = pd.concat(all_dfs, ignore_index=True)
-                final_df.to_csv(output_fileName, index=False)
-                self.logger.info(
-                    f"Kaggle dataset successfully saved to {output_fileName}"
-                )
-
-            self._log_collection("kaggle", total_records, "success")
-            return total_records
-        except ImportError:
-            self._log_collection("kaggle", 0, "error", "kagglehub not installed")
-        except Exception as e:
-            self._log_collection("kaggle", 0, "error", str(e))
 
     def _log_collection(self, source_type, records, status, error_msg=None):
         """Log each collection attempt to pipeline_logs."""
@@ -445,9 +380,7 @@ class DataCollectionPipeline:
         if not scraped_df.empty and "content" in scraped_df.columns:
             # The 'content' column stores data as JSON strings. Let's expand them into separate columns.
             content_expanded = pd.json_normalize(
-                scraped_df["content"].apply(
-                    lambda x: json.loads(x) if pd.notna(x) else {}
-                )
+                scraped_df["content"].apply(lambda x: json.loads(x) if pd.notna(x) else {})
             )
 
             # Remove redundant columns so they don't produce '.1' duplicates
@@ -605,9 +538,7 @@ class OSMFeatureExtractorPipeline:
             print(f"'lat' or 'lon' column missing in {input_csv}.")
             return
 
-        df_props = df_props[
-            df_props["lat"].notnull() & df_props["lon"].notnull()
-        ].copy()
+        df_props = df_props[df_props["lat"].notnull() & df_props["lon"].notnull()].copy()
         missing_coords_count = original_row_count - len(df_props)
 
         print(f"Total properties loaded: {original_row_count}")
@@ -625,23 +556,19 @@ class OSMFeatureExtractorPipeline:
         df_props["lon_rad"] = np.deg2rad(df_props["lon"])
 
         print(
-            f"\\nReading Egypt OSM PBF file using osmium... (This is fast but may take ~30 seconds)"
+            "\\nReading Egypt OSM PBF file using osmium... (This is fast but may take ~30 seconds)"
         )
         try:
             handler = POIHandler()
             handler.apply_file(osm_pbf)
 
             if not handler.pois:
-                print(
-                    "No POIs found. The OSM filter might be too strict or the file is invalid."
-                )
+                print("No POIs found. The OSM filter might be too strict or the file is invalid.")
                 return
 
             pois = pd.DataFrame(handler.pois)
         except Exception as e:
-            print(
-                f"Failed to load PBF file: {e}\\nMake sure '{osm_pbf}' is in this folder!"
-            )
+            print(f"Failed to load PBF file: {e}\\nMake sure '{osm_pbf}' is in this folder!")
             return
 
         print(f"Loaded {len(pois)} POIs. Extracting their coordinates...")
@@ -650,7 +577,7 @@ class OSMFeatureExtractorPipeline:
 
         EARTH_RADIUS_KM = 6371.0
 
-        print(f"\\nBuilding Spatial Trees and calculating distances...")
+        print("\\nBuilding Spatial Trees and calculating distances...")
         poi_categories = {
             "school": pois[pois["amenity"] == "school"],
             "hospital": pois[pois["amenity"].isin(["hospital", "clinic"])],
@@ -668,9 +595,7 @@ class OSMFeatureExtractorPipeline:
                 continue
 
             print(f" - Processing nearest {cat_name}...")
-            tree = BallTree(
-                cat_df[["poi_lat_rad", "poi_lon_rad"]].values, metric="haversine"
-            )
+            tree = BallTree(cat_df[["poi_lat_rad", "poi_lon_rad"]].values, metric="haversine")
 
             dist, ind = tree.query(df_props[["lat_rad", "lon_rad"]].values, k=1)
             dist_km = dist.flatten() * EARTH_RADIUS_KM
@@ -690,7 +615,7 @@ class OSMFeatureExtractorPipeline:
 
         df_props.drop(columns=["lat_rad", "lon_rad"], inplace=True, errors="ignore")
 
-        print(f"\\nSuccessfully calculated the following ML features:")
+        print("\\nSuccessfully calculated the following ML features:")
         for feature in new_features:
             print(f" - {feature}")
 
