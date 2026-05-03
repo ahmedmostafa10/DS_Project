@@ -49,13 +49,15 @@ def test_accuracy_quarantine():
         }
     )
 
-    result = accuracy_qurantine_based_fixing(df, quarantine_log_path=quarantine_log_path)
+    try:
+        result = accuracy_qurantine_based_fixing(df, quarantine_log_path=quarantine_log_path)
 
-    # only valid rows remain
-    assert len(result) == 1
+        assert len(result) == 1
+        assert os.path.exists(quarantine_log_path)
 
-    # quarantine file created
-    assert os.path.exists(quarantine_log_path)
+    finally:
+        if os.path.exists(quarantine_log_path):
+            os.remove(quarantine_log_path)
 
 
 def test_fix_consistency():
