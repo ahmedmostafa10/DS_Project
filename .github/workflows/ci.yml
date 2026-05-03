@@ -33,4 +33,4 @@ jobs:
       run: make lint
 
     - name: Run tests
-      run: pytest tests/ -v
+      run: make test
