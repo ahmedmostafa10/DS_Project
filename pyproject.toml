@@ -20,8 +20,5 @@ pandas = "*"
 scikit-learn = "*"
 seaborn = "*"
 xgboost = "*"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
 ruff = "*"
+pytest = "*"
