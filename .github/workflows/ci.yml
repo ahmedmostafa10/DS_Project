@@ -23,11 +23,8 @@ jobs:
       with:
         python-version: "3.11"
 
-
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
-        pip install -e .
+    - name: setup env
+      run: make setup
 
     - name: Format check 
       run: make format
