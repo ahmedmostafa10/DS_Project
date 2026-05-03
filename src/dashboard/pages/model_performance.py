@@ -8,58 +8,58 @@ import streamlit as st
 
 
 MODEL_DATA = {
-    "Logistic Regression (Tuned)": {
-        "train_acc": 0.68,
-        "val_acc": 0.67,
-        "test_acc": 0.67,
-        "cv_score": 0.67,
-        "f1_low": 0.72,
-        "f1_medium": 0.54,
-        "f1_high": 0.78,
+    "Logistic Regression": {
+        "train_acc": 0.52,
+        "val_acc": 0.52,
+        "test_acc": 0.52,
+        "macro_f1": 0.50,
+        "f1_low": 0.50,
+        "f1_medium": 0.34,
+        "f1_high": 0.54,
         "best_params": {"C": 0.1, "penalty": "l2", "solver": "lbfgs"},
     },
-    "Decision Tree (Tuned)": {
-        "train_acc": 0.71,
-        "val_acc": 0.68,
-        "test_acc": 0.68,
-        "cv_score": 0.67,
+    "Decision Tree": {
+        "train_acc": 0.88,
+        "val_acc": 0.67,
+        "test_acc": 0.67,
+        "macro_f1": 0.66,
         "f1_low": 0.70,
-        "f1_medium": 0.63,
-        "f1_high": 0.72,
+        "f1_medium": 0.57,
+        "f1_high": 0.73,
         "best_params": {"max_depth": 10, "min_samples_split": 5},
     },
-    "Random Forest (Tuned)": {
-        "train_acc": 0.95,
-        "val_acc": 0.72,
-        "test_acc": 0.71,
-        "cv_score": 0.70,
+    "Random Forest": {
+        "train_acc": 0.94,
+        "val_acc": 0.70,
+        "test_acc": 0.70,
+        "macro_f1": 0.71,
         "f1_low": 0.75,
-        "f1_medium": 0.63,
-        "f1_high": 0.80,
+        "f1_medium": 0.61,
+        "f1_high": 0.75,
         "best_params": {"n_estimators": 300, "max_depth": 20},
     },
-    "XGBoost (Tuned)": {
-        "train_acc": 0.78,
-        "val_acc": 0.73,
-        "test_acc": 0.72,
-        "cv_score": 0.71,
-        "f1_low": 0.76,
-        "f1_medium": 0.65,
-        "f1_high": 0.82,
+    "XGBoost": {
+        "train_acc": 0.85,
+        "val_acc": 0.72,
+        "test_acc": 0.73,
+        "macro_f1": 0.73,
+        "f1_low": 0.77,
+        "f1_medium": 0.64,
+        "f1_high": 0.78,
         "best_params": {
             "n_estimators": 300,
             "max_depth": 8,
             "learning_rate": 0.1,
         },
     },
-    "SVC (Tuned)": {
-        "train_acc": 0.72,
-        "val_acc": 0.70,
-        "test_acc": 0.69,
-        "cv_score": 0.68,
-        "f1_low": 0.73,
-        "f1_medium": 0.60,
-        "f1_high": 0.75,
+    "SVC": {
+        "train_acc": 0.42,
+        "val_acc": 0.43,
+        "test_acc": 0.43,
+        "macro_f1": 0.32,
+        "f1_low": 0.41,
+        "f1_medium": 0.08,
+        "f1_high": 0.41,
         "best_params": {"C": 10, "gamma": "auto", "kernel": "rbf"},
     },
 }
@@ -80,13 +80,12 @@ def make_comparison_table() -> pd.DataFrame:
         rows.append(
             {
                 "Model": model_name,
-                "Train Acc": f"{metrics['train_acc']:.1%}",
-                "Val Acc": f"{metrics['val_acc']:.1%}",
-                "Test Acc": f"{metrics['test_acc']:.1%}",
-                "CV Score": f"{metrics['cv_score']:.1%}",
-                "F1 Low": f"{metrics['f1_low']:.2f}",
-                "F1 Medium": f"{metrics['f1_medium']:.2f}",
-                "F1 High": f"{metrics['f1_high']:.2f}",
+                "Train Acc": f"{metrics['train_acc']:.0%}",
+                "Val Acc": f"{metrics['val_acc']:.0%}",
+                # "Test Acc": f"{metrics['test_acc']:.0%}",
+                "Macro F1": f"{metrics['macro_f1']:.2f}",
+                "Medium F1": f"{metrics['f1_medium']:.2f}",
+                "High Prec.": f"{metrics['f1_high']:.2f}",
             }
         )
     return pd.DataFrame(rows)
@@ -99,20 +98,20 @@ def make_accuracy_comparison_figure() -> plt.Figure:
     model_names = list(MODEL_DATA.keys())
     train_accs = [MODEL_DATA[m]["train_acc"] for m in model_names]
     val_accs = [MODEL_DATA[m]["val_acc"] for m in model_names]
-    test_accs = [MODEL_DATA[m]["test_acc"] for m in model_names]
+    # test_accs = [MODEL_DATA[m]["test_acc"] for m in model_names]
 
     x = np.arange(len(model_names))
     width = 0.25
 
     ax.bar(x - width, train_accs, width, label="Train", alpha=0.8)
     ax.bar(x, val_accs, width, label="Validation", alpha=0.8)
-    ax.bar(x + width, test_accs, width, label="Test", alpha=0.8)
+    # ax.bar(x + width, test_accs, width, label="Test", alpha=0.8)
 
     ax.set_ylabel("Accuracy")
-    ax.set_title("Model Performance Comparison", fontweight="bold")
+    ax.set_title("Model Performance Comparison (Train/Val Accuracy)", fontweight="bold")
     ax.set_xticks(x)
     ax.set_xticklabels(model_names, rotation=25, ha="right")
-    ax.set_ylim([0.6, 1.0])
+    ax.set_ylim([0.3, 1.0])
     ax.legend()
     ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda y, _: f"{y:.0%}"))
     ax.grid(axis="y", alpha=0.3)
@@ -140,14 +139,14 @@ def make_f1_by_tier_figure() -> plt.Figure:
         annot=True,
         fmt=".2f",
         cmap="RdYlGn",
-        vmin=0.5,
-        vmax=0.85,
+        vmin=0.0,
+        vmax=0.80,
         cbar_kws={"label": "F1 Score"},
         ax=ax,
         linewidths=0.5,
         linecolor="white",
     )
-    ax.set_title("F1 Scores by Price Tier", fontweight="bold")
+    ax.set_title("F1 Scores by Price Tier (Test Set)", fontweight="bold")
     ax.set_xlabel("Price Tier")
     ax.set_ylabel("Model")
 
@@ -161,41 +160,43 @@ def show() -> None:
         "Comparison of five classification models trained to predict apartment price tier."
     )
 
-    best_model = "XGBoost (Tuned)"
+    best_model = "XGBoost"
     best_acc = MODEL_DATA[best_model]["test_acc"]
+    avg_macro_f1 = np.mean([m['macro_f1'] for m in MODEL_DATA.values()])
 
     metrics = st.columns(4)
-    metrics[0].metric("Best Model", "XGBoost", "72.0% test acc")
-    metrics[1].metric("Avg Test Accuracy", f"{np.mean([m['test_acc'] for m in MODEL_DATA.values()]):.1%}")
-    metrics[2].metric("Strongest Tier", "High", "avg F1 = 0.79")
-    metrics[3].metric("Weakest Tier", "Medium", "avg F1 = 0.61")
+    metrics[0].metric("Best Model", "XGBoost", "73% test acc")
+    metrics[1].metric("XGBoost Overfitting", "12%", "Train: 85%, Val: 72%")
+    metrics[2].metric("Best Macro F1", "0.73", "XGBoost test")
+    metrics[3].metric("Weakest Tier", "Medium F1", "0.64 (XGBoost)")
 
     st.markdown("### Summary Table")
     table_df = make_comparison_table()
     st.dataframe(table_df, use_container_width=True)
     st.caption(
-        "Train-Val gap: Random Forest overfits (95% → 72%). XGBoost generalizes best (78% → 73%)."
+        "XGBoost achieves 73% test accuracy with a 12-point overfitting gap (85% train → 72% val → 73% test). "
+        "This represents the best balance of performance and generalization."
     )
 
     st.markdown("### Test Accuracy Comparison")
-    st.pyplot(make_accuracy_comparison_figure(), use_container_width=True)
+    st.pyplot(make_accuracy_comparison_figure(), width='stretch')
     st.info(
-        "All models cluster around 70–72% test accuracy. The model learns the same underlying "
-        "patterns; success is limited by data structure, not algorithm choice."
+        "XGBoost (73%) outperforms all other models. Decision Tree and Random Forest suffer from significant overfitting "
+        "(88%→67% and 94%→70% respectively). Logistic Regression and SVC underfit (42-52% train/test)."
     )
 
     st.markdown("### F1 Scores by Price Tier")
-    st.pyplot(make_f1_by_tier_figure(), use_container_width=True)
+    st.pyplot(make_f1_by_tier_figure(), width='stretch')
     st.warning(
-        "**Medium tier is hard:** F1 = 0.61–0.65 across all models. "
-        "This tier sits at the boundary between Low and High, causing confusion. "
-        "Low and High are easier (F1 ≈ 0.75–0.76 for Low, 0.78–0.82 for High)."
+        "**Medium tier is the hardest to predict:** F1 ranges from 0.08 (SVC) to 0.64 (XGBoost). "
+        "This class sits at the boundary between Low and High, causing systematic confusion. "
+        "Low and High are easier (F1 ≈ 0.77–0.78 for both in XGBoost)."
     )
 
     st.markdown("### Hyperparameter Summary")
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**Logistic Regression (Best)**")
+        st.markdown("**Logistic Regression**")
         st.code("C: 0.1\npenalty: L2\nsolver: lbfgs", language="yaml")
     with col2:
         st.markdown("**XGBoost (Best)**")
@@ -204,15 +205,24 @@ def show() -> None:
             language="yaml",
         )
 
+    st.markdown("### XGBoost Test Classification Report")
+    xgb_results = pd.DataFrame({
+        "Price Tier": ["Low (Class 0)", "Medium (Class 1)", "High (Class 2)", "Macro Average"],
+        "Precision": [0.79, 0.63, 0.78, 0.73],
+        "Recall": [0.75, 0.66, 0.78, 0.73],
+        "F1-Score": [0.77, 0.64, 0.78, 0.73],
+        "Support": [773, 774, 773, 2320],
+    })
+    st.dataframe(xgb_results, use_container_width=True)
+    st.success(
+        "XGBoost achieved 73% test accuracy and 0.73 Macro F1. Training accuracy was 85%, "
+        "resulting in a 12-point overfitting gap—the best balance among all tested models."
+    )
+
     st.markdown("### Key Insights")
     st.info(
-        "✓ **Model learns geography well:** City placement dominates predictions. "
-        "Gharbia listings are pushed Low; North Coast listings pushed High. "
-        "The model has captured the strongest signal.\n\n"
-        "✓ **Furnished status is a strong secondary signal:** Furnished properties "
-        "skew High tier across all models, and this pattern is reliably learned.\n\n"
-        "✗ **Medium tier ambiguity:** 24% of true Low mislabeled as Medium; "
-        "33% of true Medium misassigned. This is a data problem.\n\n"
-        "✗ **Feature engineering limits:** Raw feature counts (bedrooms, bathrooms) "
-        "are weak signals. Ratios (area per bedroom) and location data drive performance."
+        "✓ **XGBoost wins:** 73% test accuracy, best Macro F1 (0.73), and most balanced overfitting (12 points).\n\n"
+        "✓ **Low & High tiers are predictable:** XGBoost F1 = 0.77–0.78 with strong precision (0.78–0.79).\n\n"
+        "✗ **Medium tier is intrinsically hard:** F1 = 0.64 even with best model. Data structure creates natural ambiguity.\n\n"
+        "✗ **Other models struggle:** Logistic Regression/SVC underfit; Decision Tree/Random Forest overfit severely."
     )
