@@ -22,6 +22,8 @@ seaborn = "*"
 xgboost = "*"
 ruff = "*"
 pytest = "*"
+statsmodels = "^0.14.6"
+
 
 [tool.ruff]
 line-length = 100

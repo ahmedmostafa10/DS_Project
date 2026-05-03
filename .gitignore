@@ -12,3 +12,4 @@ settings.json
 *.png
 *__pycache__/
 /tempvenv
+poetry.lock
