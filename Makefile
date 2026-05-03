@@ -1,10 +1,14 @@
-PYTHON := PYTHONPATH=. python  # this for conda 
+PYTHON := poetry run python  # this for conda 
 
 .PHONY: all data feature train test clean
 
 
 all: train
-
+setup:
+	pip install poetry poetry-plugin-shell
+	rm -f poetry.lock
+	poetry lock
+	poetry install
 # clean
 data: data/cleaned/cleaned_data.csv
 
