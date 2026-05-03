@@ -2,7 +2,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
-import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -13,7 +12,7 @@ from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
 # CONFIGURATION & CONSTANTS
 
-DATA_PATH = Path("data/processed/cleaned_data.csv")
+DATA_PATH = Path("data/cleaned/cleaned_data.csv")
 FIGURES_PATH = Path("reports/figures/EDA")
 FIGURES_PATH.mkdir(parents=True, exist_ok=True)
 
@@ -278,7 +277,7 @@ def plot_categorical_bar_charts(
         # Use matplotlib barh with a seaborn colormap to avoid seaborn palette
         # deprecation when no `hue` is provided.
         colors = sns.color_palette("Blues_d", n_colors=len(freq))
-        bars = ax.barh(range(len(freq)), freq.values, color=colors)
+        ax.barh(range(len(freq)), freq.values, color=colors)
         ax.set_yticks(range(len(freq)))
         ax.set_yticklabels(freq.index)
         ax.invert_yaxis()
@@ -1159,14 +1158,12 @@ def run_one_way_anova(
 
     # Step 1: Normality check (Shapiro-Wilk)
     print("\n1. Normality (Shapiro-Wilk):")
-    normality_ok = True
     for cat, vals in groups.items():
         sample = vals[:2000] if len(vals) > 2000 else vals
         stat, p = shapiro(sample)
         ok = p > alpha
         print(f"   {cat}: W={stat:.4f}, p={p:.4f} {'✓' if ok else '✗'}")
-        if not ok:
-            normality_ok = False
+        # If any group fails normality, it's reported above; no flag retained.
 
     # Step 2: Homogeneity of variance (Levene's test)
     lev_stat, lev_p = levene(*groups.values())
@@ -1179,7 +1176,7 @@ def run_one_way_anova(
     # Step 3: ANOVA
     f_stat, p_val = f_oneway(*groups.values())
     reject = p_val < alpha
-    print(f"\n3. One-Way ANOVA:")
+    print("\n3. One-Way ANOVA:")
     print(f"   F-statistic: {f_stat:.4f}")
     print(f"   p-value:     {p_val:.6f}")
     print(f"   Result: {'REJECT H₀' if reject else 'FAIL TO REJECT H₀'} (α={alpha})")
@@ -1671,7 +1668,7 @@ def run_eda() -> None:
 
     # === MULTIVARIATE ANALYSIS ===
     print("\n[14] Multivariate Analysis: Spearman Correlation Matrix...")
-    corr_matrix = plot_spearman_correlation_matrix(
+    plot_spearman_correlation_matrix(
         df,
         columns=CORR_COLS,
         save_path=FIGURES_PATH / "13_spearman_correlation_matrix.png",
@@ -1721,7 +1718,7 @@ def run_eda() -> None:
 
     # === STATISTICAL TESTS ===
     print("\n[19] Statistical Tests: One-Way ANOVA (Price across Cities)...")
-    anova_result = run_one_way_anova(df, numeric_col="price_egp", group_col="city")
+    run_one_way_anova(df, numeric_col="price_egp", group_col="city")
 
     print("\n[20] Statistical Tests: Chi-Square Independence Tests...")
     chi2_results = {}
