@@ -25,6 +25,8 @@ pytest = "*"
 statsmodels = "^0.14.6"
 pytest-cov = "*"
 osmium = "*"
+beautifulsoup4 = "*"
+requests = "*"
 
 
 [tool.ruff]
