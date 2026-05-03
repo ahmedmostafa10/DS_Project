@@ -366,6 +366,9 @@ class DataValidationPipeline:
         os.makedirs(plots_out_dir, exist_ok=True)
 
         try:
+            import matplotlib
+
+            matplotlib.use("Agg")
             import matplotlib.pyplot as plt
             import seaborn as sns
 
