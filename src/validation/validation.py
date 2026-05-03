@@ -1,9 +1,10 @@
-import os
 import logging
-import pandas as pd
-import numpy as np
-from pydantic import BaseModel, ValidationError, Field, field_validator
+import os
 from typing import Optional
+
+import numpy as np
+import pandas as pd
+from pydantic import BaseModel, ValidationError, field_validator
 
 
 class PropertyRowSchema(BaseModel):
@@ -62,15 +63,11 @@ class DataValidationPipeline:
             df = pd.read_csv(input_csv)
             self.logger.info(f"Data loaded successfully! Shape: {df.shape}")
         except FileNotFoundError:
-            self.logger.error(
-                f"File {input_csv} not found. Cannot proceed with validation."
-            )
+            self.logger.error(f"File {input_csv} not found. Cannot proceed with validation.")
             return
 
         numeric_cols = df.select_dtypes(include=[np.number]).columns
-        categorical_cols = df.select_dtypes(
-            include=["object", "category", "string"]
-        ).columns
+        categorical_cols = df.select_dtypes(include=["object", "category", "string"]).columns
 
         self._validate_accuracy(df, numeric_cols)
         self._validate_consistency(df)
@@ -90,27 +87,19 @@ class DataValidationPipeline:
         for col in numeric_cols:
             negative_count = (df[col] < 0).sum()
             if negative_count > 0:
-                self.logger.warning(
-                    f"Column '{col}' contains {negative_count} negative values."
-                )
+                self.logger.warning(f"Column '{col}' contains {negative_count} negative values.")
                 accuracy_issues += negative_count
                 acc_details.append(f"{col}: {negative_count} negatives")
 
         if "bedrooms" in df.columns:
-            invalid_beds_count = (
-                pd.to_numeric(df["bedrooms"], errors="coerce") > 15
-            ).sum()
+            invalid_beds_count = (pd.to_numeric(df["bedrooms"], errors="coerce") > 15).sum()
             if invalid_beds_count > 0:
-                self.logger.warning(
-                    f"Column 'bedrooms' contains {invalid_beds_count} values > 15."
-                )
+                self.logger.warning(f"Column 'bedrooms' contains {invalid_beds_count} values > 15.")
                 accuracy_issues += invalid_beds_count
                 acc_details.append(f"bedrooms: {invalid_beds_count} values > 15")
 
         if "bathroom" in df.columns:
-            invalid_baths_count = (
-                pd.to_numeric(df["bathroom"], errors="coerce") > 15
-            ).sum()
+            invalid_baths_count = (pd.to_numeric(df["bathroom"], errors="coerce") > 15).sum()
             if invalid_baths_count > 0:
                 self.logger.warning(
                     f"Column 'bathroom' contains {invalid_baths_count} values > 15."
@@ -122,18 +111,14 @@ class DataValidationPipeline:
             invalid_area_count_high = (
                 pd.to_numeric(df["area_value"], errors="coerce") > 1000
             ).sum()
-            invalid_area_count_low = (
-                pd.to_numeric(df["area_value"], errors="coerce") < 10
-            ).sum()
+            invalid_area_count_low = (pd.to_numeric(df["area_value"], errors="coerce") < 10).sum()
             if invalid_area_count_high > 0 or invalid_area_count_low > 0:
                 invalid_area_count = invalid_area_count_high + invalid_area_count_low
                 self.logger.warning(
                     f"Column 'area_value' contains {invalid_area_count} unrealistic values (> 1000 or < 10 sqm)."
                 )
                 accuracy_issues += invalid_area_count
-                acc_details.append(
-                    f"area_value: {invalid_area_count} unrealistic values"
-                )
+                acc_details.append(f"area_value: {invalid_area_count} unrealistic values")
 
         if "price_egp" in df.columns:
             invalid_price_count = (
@@ -144,9 +129,7 @@ class DataValidationPipeline:
                     f"Column 'price_egp' contains {invalid_price_count} extremely high values (> 500M EGP)."
                 )
                 accuracy_issues += invalid_price_count
-                acc_details.append(
-                    f"price_egp: {invalid_price_count} extreme highs (> 500M EGP)"
-                )
+                acc_details.append(f"price_egp: {invalid_price_count} extreme highs (> 500M EGP)")
 
         if accuracy_issues == 0:
             self.logger.info("Basic numeric boundaries look accurate.")
@@ -174,9 +157,7 @@ class DataValidationPipeline:
                 f"Total rows failing Pydantic consistency validation: {pydantic_error_count}"
             )
             consistency_errors.append("Pydantic Schema/Type/Logic validation failed")
-            con_details.append(
-                f"{pydantic_error_count} rows failed Pydantic validation"
-            )
+            con_details.append(f"{pydantic_error_count} rows failed Pydantic validation")
 
         cat_cols_to_check = [
             "city",
@@ -200,9 +181,7 @@ class DataValidationPipeline:
                     )
 
         if "property_type" in df.columns:
-            prop_types = set(
-                df["property_type"].dropna().astype(str).str.lower().str.strip()
-            )
+            prop_types = set(df["property_type"].dropna().astype(str).str.lower().str.strip())
             pairs_to_check = [
                 ("apartment", "apartments"),
                 ("villa", "villas"),
@@ -221,9 +200,7 @@ class DataValidationPipeline:
                 con_details.append(f"property_type: mixed {', '.join(mixed_pairs)}")
 
         if "offering_type" in df.columns:
-            off_types = set(
-                df["offering_type"].dropna().astype(str).str.lower().str.strip()
-            )
+            off_types = set(df["offering_type"].dropna().astype(str).str.lower().str.strip())
             sale_synonyms = {"for-sale", "for sale", "residential for sale", "buy"}
             rent_synonyms = {"for-rent", "for rent", "residential for rent", "rent"}
 
@@ -235,27 +212,21 @@ class DataValidationPipeline:
                     f"[offering_type] Found inconsistent 'sale' categories: {', '.join(found_sale)}"
                 )
                 consistency_errors.append("offering_type sale synonyms")
-                con_details.append(
-                    f"offering_type: mixed sale synonyms ({', '.join(found_sale)})"
-                )
+                con_details.append(f"offering_type: mixed sale synonyms ({', '.join(found_sale)})")
 
             if len(found_rent) > 1:
                 self.logger.warning(
                     f"[offering_type] Found inconsistent 'rent' categories: {', '.join(found_rent)}"
                 )
                 consistency_errors.append("offering_type rent synonyms")
-                con_details.append(
-                    f"offering_type: mixed rent synonyms ({', '.join(found_rent)})"
-                )
+                con_details.append(f"offering_type: mixed rent synonyms ({', '.join(found_rent)})")
 
         units_cols = ["area_unit", "price_currency"]
         for col in units_cols:
             if col in df.columns:
                 unique_units = df[col].dropna().unique()
                 if len(unique_units) > 1:
-                    self.logger.warning(
-                        f"[{col}] Inconsistent units found: {unique_units}"
-                    )
+                    self.logger.warning(f"[{col}] Inconsistent units found: {unique_units}")
                     consistency_errors.append(f"Mixed {col}")
                     con_details.append(f"{col}: Mixed units {list(unique_units)}")
 
@@ -263,10 +234,7 @@ class DataValidationPipeline:
             col_dropna = df[col].dropna()
             if not col_dropna.empty:
                 inferred_type = pd.api.types.infer_dtype(col_dropna)
-                if (
-                    inferred_type.startswith("mixed")
-                    and inferred_type != "mixed-integer-float"
-                ):
+                if inferred_type.startswith("mixed") and inferred_type != "mixed-integer-float":
                     self.logger.warning(
                         f"[{col}] Column contains fundamentally mixed data types (inferred: {inferred_type})."
                     )
@@ -280,9 +248,7 @@ class DataValidationPipeline:
                             f"[{col}] Found {empty_str_count} empty string values posing as valid data instead of NaNs."
                         )
                         consistency_errors.append(f"Empty strings in {col}")
-                        con_details.append(
-                            f"{col}: {empty_str_count} hidden empty strings"
-                        )
+                        con_details.append(f"{col}: {empty_str_count} hidden empty strings")
 
         if not con_details:
             con_details.append("No consistency issues found")
@@ -299,9 +265,9 @@ class DataValidationPipeline:
                 "Percentage (%)": (missing_data / len(df)) * 100,
             }
         )
-        completeness_df = completeness_df[
-            completeness_df["Missing Values"] > 0
-        ].sort_values(by="Percentage (%)", ascending=False)
+        completeness_df = completeness_df[completeness_df["Missing Values"] > 0].sort_values(
+            by="Percentage (%)", ascending=False
+        )
         self.logger.info(f"Missing values found in {len(completeness_df)} columns.")
 
         for idx, missing_row in completeness_df.iterrows():
@@ -314,8 +280,7 @@ class DataValidationPipeline:
             comp_details.append("No missing data in dataset.")
 
         self.report_summary["Completeness"] = (
-            f"{len(completeness_df)} cols have missing -> All: "
-            + " | ".join(comp_details)
+            f"{len(completeness_df)} cols have missing -> All: " + " | ".join(comp_details)
         )
 
     def _validate_uniqueness(self, df, categorical_cols):
@@ -342,9 +307,7 @@ class DataValidationPipeline:
                 Q1 = df[col].quantile(0.25)
                 Q3 = df[col].quantile(0.75)
                 IQR = Q3 - Q1
-                outliers = df[
-                    (df[col] < (Q1 - 1.5 * IQR)) | (df[col] > (Q3 + 1.5 * IQR))
-                ]
+                outliers = df[(df[col] < (Q1 - 1.5 * IQR)) | (df[col] > (Q3 + 1.5 * IQR))]
                 if len(outliers) > 0:
                     self.logger.info(
                         f"IQR Outliers -> [{col}]: {len(outliers)} values outside 1.5*IQR boundaries"
@@ -378,9 +341,7 @@ class DataValidationPipeline:
         rel_details = []
         if len(numeric_cols) > 1:
             corr_matrix = df[numeric_cols].corr(method="spearman")
-            self.logger.info(
-                "Calculated Spearman Correlation Matrix (robust to outliers)."
-            )
+            self.logger.info("Calculated Spearman Correlation Matrix (robust to outliers).")
             for i in range(len(corr_matrix.columns)):
                 for j in range(i):
                     val = corr_matrix.iloc[i, j]
@@ -410,9 +371,7 @@ class DataValidationPipeline:
 
             # 1. Numeric Feature Distribution Profiles (Histograms + KDE)
             cols_to_plot = [
-                c
-                for c in numeric_cols
-                if df[c].nunique() > 10 and not c.lower().endswith("id")
+                c for c in numeric_cols if df[c].nunique() > 10 and not c.lower().endswith("id")
             ]
             if cols_to_plot:
                 n_cols = len(cols_to_plot)
@@ -438,29 +397,21 @@ class DataValidationPipeline:
                     else:
                         axes[i].set_title(f"Distribution Profile: {col}")
 
-                    sns.histplot(
-                        data_to_plot, kde=True, bins=30, ax=axes[i], color="skyblue"
-                    )
+                    sns.histplot(data_to_plot, kde=True, bins=30, ax=axes[i], color="skyblue")
 
                 for j in range(i + 1, len(axes)):
                     fig.delaxes(axes[j])
 
                 plt.tight_layout()
-                dist_path = os.path.join(
-                    plots_out_dir, "numeric_distribution_profiles.png"
-                )
+                dist_path = os.path.join(plots_out_dir, "numeric_distribution_profiles.png")
                 plt.savefig(dist_path)
                 plt.close(fig)
-                self.logger.info(
-                    f"📊 Numeric distribution profiles saved to {dist_path}"
-                )
+                self.logger.info(f"📊 Numeric distribution profiles saved to {dist_path}")
 
             # 2. Categorical Bar Chart (Class Distribution)
             if len(categorical_cols) > 0:
                 target_cat = (
-                    "property_type"
-                    if "property_type" in df.columns
-                    else categorical_cols[0]
+                    "property_type" if "property_type" in df.columns else categorical_cols[0]
                 )
                 plt.figure(figsize=(10, 6))
                 df[target_cat].value_counts().head(10).plot(
@@ -470,9 +421,7 @@ class DataValidationPipeline:
                 plt.ylabel("Frequency")
                 plt.xticks(rotation=45)
                 plt.tight_layout()
-                bar_path = os.path.join(
-                    plots_out_dir, f"class_distribution_{target_cat}.png"
-                )
+                bar_path = os.path.join(plots_out_dir, f"class_distribution_{target_cat}.png")
                 plt.savefig(bar_path)
                 plt.close()
                 self.logger.info(f"📊 Class distribution bar chart saved to {bar_path}")
@@ -484,26 +433,20 @@ class DataValidationPipeline:
                 sns.heatmap(corr_matrix, annot=False, cmap="coolwarm", linewidths=0.5)
                 plt.title("Spearman Correlation Matrix")
                 plt.tight_layout()
-                heatmap_path = os.path.join(
-                    plots_out_dir, "correlation_heatmap_spearman.png"
-                )
+                heatmap_path = os.path.join(plots_out_dir, "correlation_heatmap_spearman.png")
                 plt.savefig(heatmap_path)
                 plt.close()
                 self.logger.info(f"📊 Correlation heatmap saved to {heatmap_path}")
 
         except ImportError:
-            self.logger.warning(
-                "matplotlib or seaborn not installed. Skipping chart generation."
-            )
+            self.logger.warning("matplotlib or seaborn not installed. Skipping chart generation.")
 
     def _validate_context(self, df):
         self.logger.info("--- Description & Context ---")
         target_col = "price"
         if target_col in df.columns:
             self.logger.info(f"Target Definition: Target defined as '{target_col}'")
-            self.report_summary["Target Definition"] = (
-                f"Target defined as '{target_col}'."
-            )
+            self.report_summary["Target Definition"] = f"Target defined as '{target_col}'."
         else:
             self.logger.info("Target Definition: Target variable undefined.")
             self.report_summary["Target Definition"] = "Target variable undefined."
