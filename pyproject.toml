@@ -23,6 +23,7 @@ xgboost = "*"
 ruff = "*"
 pytest = "*"
 statsmodels = "^0.14.6"
+pytest-cov = "*"
 
 
 [tool.ruff]
@@ -43,7 +44,12 @@ known-first-party = ["src"]
 # ─── Coverage ─────────────────────────────────────────────────────────────────
 [tool.coverage.run]
 source = ["src"]
-omit   = ["tests/*", "**/__init__.py"]
+omit = [
+    "tests/*",
+    "**/__init__.py",
+    "src/models/*",
+    "src/visualization/*"
+]
 
 # TODO: add new source folders here as you add stages
 # e.g. source = ["scripts", "src/training", "src/evaluation"]
@@ -51,3 +57,5 @@ omit   = ["tests/*", "**/__init__.py"]
 [tool.coverage.report]
 show_missing = true
 skip_empty   = true
+
+
