@@ -6,9 +6,8 @@ MODEL_PARAMS = {
     },
 
     "svc": {
-        "C": [0.1, 1, 10],
-        "kernel": ["rbf"],
-        "gamma": ["scale", "auto"]
+        "C": [0.1, 10],
+        "kernel": ["rbf"]
     },
 
     "decision_tree": {
