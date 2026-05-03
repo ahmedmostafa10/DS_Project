@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 from pydantic import ValidationError
 
-from validation.validation import DataValidationPipeline, PropertyRowSchema
+from src.validation.validation import DataValidationPipeline, PropertyRowSchema
 
 
 @pytest.fixture
