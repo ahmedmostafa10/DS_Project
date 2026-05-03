@@ -204,6 +204,7 @@ class TestEndToEndPipeline:
             X_train, X_val, X_test = ft.scale_features(X_train, X_val, X_test)
             X_train, X_val, X_test = ft.encode_features(X_train, X_val, X_test)
             X_train, X_val, X_test = ft.add_feature_interactions(X_train, X_val, X_test)
+
             def mock_select_features(X_t, X_v, X_te, y_t):
                 return X_t, X_v, X_te
 
