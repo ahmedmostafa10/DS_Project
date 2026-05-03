@@ -56,7 +56,11 @@ The Kaggle and Bayut datasets are row-appended. OpenStreetMap features are merge
 ├── models/                   # Saved model artifacts
 ├── reports/
 │   └── results/              # Cleaning and transformation logs
+<<<<<<< HEAD
 ├── tests/                    # Unit and integration tests
+=======
+├── tests/                    # tests
+>>>>>>> 0dda930 (initial proposed readme)
 ├── Makefile                  # Pipeline automation
 └── pyproject.toml            # Poetry dependency definition
 ```
